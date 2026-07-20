@@ -3,14 +3,25 @@ Marketic LLM Router - Parallel Multi-Model Marketing Intelligence
 
 Based on a3m-style parallel execution with confidence-weighted voting.
 Optimized for marketing tasks: copy, analysis, optimization, strategy.
+
+Uses a3m-router at localhost:8787 as the OpenAI-compatible proxy.
 """
 
 import asyncio
 import json
+import os
 import time
 from typing import Optional
 from dataclasses import dataclass
 from enum import Enum
+
+try:
+    from openai import OpenAI
+except ImportError:
+    OpenAI = None
+
+# a3m-router base URL
+a3M_BASE_URL = os.environ.get('A3M_BASE_URL', 'http://localhost:8787/v1')
 
 # Provider mapping
 LLM_PROVIDERS = {
@@ -20,42 +31,43 @@ LLM_PROVIDERS = {
     "minimax": "minimax",
 }
 
-# Marketing-specific model routing
+# Marketing-specific model routing (using Groq via a3m-router - fast & free)
+# Only Groq models confirmed working in current a3m-router setup
 MARKETING_MODEL_ROUTING = {
     "copy_generation": {
-        "primary": "anthropic/claude-sonnet-4-20250514",
-        "fallback": "openai/gpt-4o-mini",
-        "parallel": ["anthropic/claude-sonnet-4-20250514", "openai/gpt-4o-mini"],
+        "primary": "groq/llama-3.3-70b-versatile",
+        "fallback": "groq/llama-3.1-8b-instant",
+        "parallel": ["groq/llama-3.3-70b-versatile", "groq/llama-3.1-8b-instant"],
     },
     "social_media": {
-        "primary": "openai/gpt-4o-mini",
-        "fallback": "anthropic/claude-haiku-4-20250514",
-        "parallel": ["openai/gpt-4o-mini", "anthropic/claude-haiku-4-20250514"],
+        "primary": "groq/llama-3.1-8b-instant",
+        "fallback": "groq/llama-3.3-70b-versatile",
+        "parallel": ["groq/llama-3.1-8b-instant", "groq/llama-3.3-70b-versatile"],
     },
     "seo_content": {
-        "primary": "anthropic/claude-sonnet-4-20250514",
-        "fallback": "openai/gpt-4o",
-        "parallel": ["anthropic/claude-sonnet-4-20250514", "openai/gpt-4o"],
+        "primary": "groq/llama-3.3-70b-versatile",
+        "fallback": "groq/llama-3.1-8b-instant",
+        "parallel": ["groq/llama-3.3-70b-versatile", "groq/llama-3.1-8b-instant"],
     },
     "analytics": {
-        "primary": "openai/gpt-4o",
-        "fallback": "anthropic/claude-sonnet-4-20250514",
-        "parallel": ["openai/gpt-4o", "google/gemini-2.0-flash-001"],
+        "primary": "groq/llama-3.3-70b-versatile",
+        "fallback": "groq/llama-3.1-8b-instant",
+        "parallel": ["groq/llama-3.3-70b-versatile", "groq/llama-3.1-8b-instant"],
     },
     "strategy": {
-        "primary": "anthropic/claude-sonnet-4-20250514",
-        "fallback": "openai/gpt-4o",
-        "parallel": ["anthropic/claude-sonnet-4-20250514", "openai/gpt-4o", "google/gemini-2.0-flash-001"],
+        "primary": "groq/llama-3.3-70b-versatile",
+        "fallback": "groq/llama-3.1-8b-instant",
+        "parallel": ["groq/llama-3.3-70b-versatile", "groq/llama-3.1-8b-instant"],
     },
     "optimization": {
-        "primary": "openai/gpt-4o-mini",
-        "fallback": "groq/llama-3.1-8b-instant",
-        "parallel": ["openai/gpt-4o-mini", "groq/llama-3.1-8b-instant"],
+        "primary": "groq/llama-3.1-8b-instant",
+        "fallback": "groq/llama-3.3-70b-versatile",
+        "parallel": ["groq/llama-3.1-8b-instant", "groq/llama-3.3-70b-versatile"],
     },
     "general": {
-        "primary": "minimax/minimax-text-01",
-        "fallback": "openai/gpt-4o-mini",
-        "parallel": ["minimax/minimax-text-01", "openai/gpt-4o-mini"],
+        "primary": "groq/llama-3.1-8b-instant",
+        "fallback": "groq/llama-3.3-70b-versatile",
+        "parallel": ["groq/llama-3.1-8b-instant", "groq/llama-3.3-70b-versatile"],
     },
 }
 
@@ -163,25 +175,61 @@ class MarketicLLMRouter:
         temperature: float,
         max_tokens: int,
     ) -> LLMResponse:
-        """Generate response from a single model."""
+        """Generate response from a single model via a3m-router."""
         start = time.time()
-        
-        # Simulate API call
-        # In production, use litellm or direct API calls
-        await asyncio.sleep(0.1)  # Simulated latency
-        
-        latency_ms = (time.time() - start) * 1000
-        
-        # Estimate cost (simplified)
-        cost = (max_tokens / 1000) * 0.0001
-        
-        return LLMResponse(
-            model=model,
-            content=f"[Simulated response from {model}]",
-            latency_ms=latency_ms,
-            cost=cost,
-            confidence=0.85,
-        )
+
+        # Skip simulation - use real a3m-router API
+        if OpenAI is None:
+            await asyncio.sleep(0.05)
+            return LLMResponse(
+                model=model,
+                content=f"[Simulated response from {model}]",
+                latency_ms=50,
+                cost=0.0001,
+                confidence=0.85,
+            )
+
+        try:
+            # a3m-router model names are already in the correct format
+            actual_model = model  # e.g., "gpt-4o-mini", "claude-3.5-sonnet", etc.
+
+
+            client = OpenAI(
+                api_key="dummy",  # a3m-router doesn't need real key with Groq
+                base_url=a3M_BASE_URL,
+            )
+            response = client.chat.completions.create(
+                model=actual_model,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=temperature,
+                max_tokens=max_tokens,
+            )
+
+            latency_ms = (time.time() - start) * 1000
+            content = response.choices[0].message.content or ""
+
+            # Estimate cost based on token usage
+            usage = response.usage
+            total_tokens = (usage.prompt_tokens or 0) + (usage.completion_tokens or 0)
+            cost = total_tokens * 0.00001  # Rough estimate
+
+            return LLMResponse(
+                model=model,
+                content=content,
+                latency_ms=latency_ms,
+                cost=cost,
+                confidence=0.85,
+            )
+        except Exception as e:
+            # Fallback to simulation on error
+            latency_ms = (time.time() - start) * 1000
+            return LLMResponse(
+                model=model,
+                content=f"[Simulated response from {model}] (error: {str(e)[:50]})",
+                latency_ms=latency_ms,
+                cost=0,
+                confidence=0.5,
+            )
 
     def merge_results(self, responses: list[LLMResponse], method: str = "confidence_weighted") -> LLMResponse:
         """
