@@ -126,7 +126,6 @@ TOOLS = [
                 "total_budget": {"type": "number"},
                 "current_allocation": {"type": "object", "description": "JSON of channel -> amount"},
                 "channel_performance": {"type": "object", "description": "JSON of channel -> {roas, conversions}"},
-                "strategy": {"type": "string", "enum": ["roas_optimized", "conversion_focused", "awareness_focused", "balanced"], "default": "roas_optimized"},
             },
             "required": ["total_budget", "current_allocation", "channel_performance"],
         },
@@ -149,13 +148,13 @@ TOOLS = [
     # Signal & Analytics Tools
     {
         "name": "collect_signals",
-        "description": "Collect marketing signals from Product Hunt, Hacker News, Twitter, Reddit for a brand.",
+        "description": "Collect marketing signals from Product Hunt, Hacker News, and social platforms for a brand.",
         "inputSchema": {
             "type": "object",
             "properties": {
                 "brand": {"type": "string"},
                 "days": {"type": "integer", "default": 7},
-                "sources": {"type": "array", "items": {"type": "string"}, "default": ["product_hunt", "hacker_news", "twitter", "reddit"]},
+                "sources": {"type": "array", "items": {"type": "string"}, "default": ["product_hunt", "hacker_news", "twitter"]},
             },
             "required": ["brand"],
         },
@@ -431,68 +430,6 @@ TOOLS = [
                 "first_step": {"type": "string"},
             },
             "required": ["workflow_id", "steps", "first_step"],
-        },
-    },
-    # Ensemble & Audit Tools
-    {
-        "name": "ensemble_vote",
-        "description": "Run ensemble voting across multiple AI models. Selects optimal model tier based on task complexity. Returns consensus decision with confidence score.",
-        "inputSchema": {
-            "type": "object",
-            "properties": {
-                "task_type": {"type": "string", "enum": ["ad_copy", "social_post", "keyword_research", "competitor_analysis", "campaign_strategy", "brand_voice_analysis", "briefing_generation"]},
-                "prompt": {"type": "string"},
-                "context": {"type": "object", "default": {}},
-                "models": {"type": "array", "items": {"type": "string"}, "default": []},
-            },
-            "required": ["task_type", "prompt"],
-        },
-    },
-    {
-        "name": "audit_log",
-        "description": "Log an AI marketing action with full audit trail. Records model, cost, confidence, reasoning chain, and human approval status.",
-        "inputSchema": {
-            "type": "object",
-            "properties": {
-                "action": {"type": "string"},
-                "model": {"type": "string", "default": ""},
-                "input_tokens": {"type": "integer", "default": 0},
-                "output_tokens": {"type": "integer", "default": 0},
-                "cost": {"type": "number", "default": 0.0},
-                "confidence": {"type": "number", "default": 0.0},
-                "reasoning_chain": {"type": "array", "items": {"type": "string"}, "default": []},
-                "result_summary": {"type": "string", "default": ""},
-                "human_approved": {"type": "boolean", "default": None},
-                "brand_id": {"type": "string", "default": ""},
-                "metadata": {"type": "object", "default": {}},
-            },
-            "required": ["action"],
-        },
-    },
-    {
-        "name": "audit_get_log",
-        "description": "Retrieve audit log entries with filtering by brand, action, and date range.",
-        "inputSchema": {
-            "type": "object",
-            "properties": {
-                "brand_id": {"type": "string", "default": ""},
-                "action": {"type": "string", "default": ""},
-                "start_date": {"type": "string", "default": ""},
-                "end_date": {"type": "string", "default": ""},
-                "limit": {"type": "integer", "default": 100},
-            },
-        },
-    },
-    {
-        "name": "audit_get_cost_summary",
-        "description": "Get cost summary by model and action type for a date range.",
-        "inputSchema": {
-            "type": "object",
-            "properties": {
-                "brand_id": {"type": "string", "default": ""},
-                "start_date": {"type": "string", "default": ""},
-                "end_date": {"type": "string", "default": ""},
-            },
         },
     },
 ]
@@ -1056,85 +993,6 @@ async def handle_run_workflow(args):
     return serialized
 
 
-# Ensemble & Audit handlers
-async def handle_ensemble_vote(args):
-    from marketic.ensemble.voting import EnsembleVoter
-    voter = EnsembleVoter()
-    vote = voter.vote(
-        task_type=args["task_type"],
-        prompt=args["prompt"],
-        context=args.get("context", {}),
-        models=args.get("models"),
-    )
-    return {
-        "decision": vote.decision,
-        "confidence": vote.confidence,
-        "models_used": vote.models_used,
-        "reasoning_chain": vote.reasoning_chain,
-        "cost": vote.cost,
-        "consensus": vote.consensus,
-    }
-
-
-async def handle_audit_log(args):
-    from marketic.ensemble.audit_trail import AuditLogger
-    logger = AuditLogger()
-    audit_id = logger.log_action(
-        action=args["action"],
-        model=args.get("model", ""),
-        input_tokens=args.get("input_tokens", 0),
-        output_tokens=args.get("output_tokens", 0),
-        cost=args.get("cost", 0.0),
-        confidence=args.get("confidence", 0.0),
-        reasoning_chain=args.get("reasoning_chain", []),
-        result_summary=args.get("result_summary", ""),
-        human_approved=args.get("human_approved"),
-        brand_id=args.get("brand_id", ""),
-        metadata=args.get("metadata", {}),
-    )
-    return {"audit_id": audit_id, "status": "logged"}
-
-
-async def handle_audit_get_log(args):
-    from marketic.ensemble.audit_trail import AuditLogger
-    logger = AuditLogger()
-    entries = logger.get_audit_log(
-        brand_id=args.get("brand_id", "") or None,
-        action=args.get("action", "") or None,
-        start_date=args.get("start_date", "") or None,
-        end_date=args.get("end_date", "") or None,
-        limit=args.get("limit", 100),
-    )
-    return {
-        "entries": [
-            {
-                "id": e.id,
-                "timestamp": e.timestamp,
-                "brand_id": e.brand_id,
-                "action": e.action,
-                "model": e.model,
-                "cost": e.cost,
-                "confidence": e.confidence,
-                "human_approved": e.human_approved,
-                "result_summary": e.result_summary,
-            }
-            for e in entries
-        ],
-        "count": len(entries),
-    }
-
-
-async def handle_audit_get_cost_summary(args):
-    from marketic.ensemble.audit_trail import AuditLogger
-    logger = AuditLogger()
-    summary = logger.get_cost_summary(
-        brand_id=args.get("brand_id", "") or None,
-        start_date=args.get("start_date", "") or None,
-        end_date=args.get("end_date", "") or None,
-    )
-    return summary
-
-
 # ─── Handler Registry ─────────────────────────────────────────
 
 HANDLERS = {
@@ -1170,10 +1028,6 @@ HANDLERS = {
     "build_utm_url": handle_build_utm_url,
     "parse_utm_params": handle_parse_utm_params,
     "run_workflow": handle_run_workflow,
-    "ensemble_vote": handle_ensemble_vote,
-    "audit_log": handle_audit_log,
-    "audit_get_log": handle_audit_get_log,
-    "audit_get_cost_summary": handle_audit_get_cost_summary,
 }
 
 

@@ -1,0 +1,39 @@
+{
+  "name": "marketic-mcp",
+  "version": "1.0.4",
+  "description": "Marketic Marketing Intelligence MCP Server — 32 tools for competitor analysis, ad creative generation, campaign optimization, social media, SEO, HubSpot CRM, and attribution modeling",
+  "main": "mcp_server.py",
+  "bin": {
+    "marketic-mcp": "./marketic-mcp.js"
+  },
+  "keywords": [
+    "mcp",
+    "mcp-server",
+    "marketing",
+    "marketing-intelligence",
+    "competitor-analysis",
+    "advertising",
+    "campaign-optimization",
+    "seo",
+    "social-media",
+    "crm",
+    "hubspot",
+    "attribution",
+    "ai-marketing",
+    "marketing-automation",
+    "claude",
+    "cursor",
+    "windsurf",
+    "aio-executor"
+  ],
+  "author": "Subhojit Das",
+  "license": "MIT",
+  "homepage": "https://github.com/Das-rebel/marketic",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Das-rebel/marketic.git"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
