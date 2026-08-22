@@ -1,243 +1,224 @@
 # Marketic — Marketing Intelligence OS
 
-**AI-native marketing operating system with ensemble AI reasoning and full audit trails.**
+**An AI-native marketing operating system with ensemble reasoning and full audit trails.**
 
-*Closed-loop: Analyze → Generate counter-variants → Execute → Measure → Learn*
+Marketic turns any MCP-compatible AI agent into a complete marketing team — competitor analysis, creative generation, campaign execution, multi-platform orchestration, and transparent performance tracking, all with every decision logged.
 
-[![GitHub stars](https://img.shields.io/github/stars/Das-rebel/marketic)](https://github.com/Das-rebel/marketic)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+It ships one core server and a layered module system:
+
+| Layer | Component | What it does |
+|-------|-----------|--------------|
+| **🧠 Ensemble** | `ensemble/voting.py` | Multi-model AI voting with confidence scoring |
+| **📋 Audit** | `ensemble/audit_trail.py` | Full decision logging — model, cost, reasoning, approval |
+| **🎨 Creative** | `creative/*` | Ad copy, social posts, SEO content |
+| **📣 Campaign** | `campaign/*` | Multi-channel campaign builder + ROAS optimizer |
+| **🗺️ GTM** | `gtm/*` | Competitive intel, positioning maps, brand narratives |
+| **📡 Signals** | `signals/collectors.py` | PH, HN, Twitter, Reddit intelligence |
+| **📊 Analytics** | `analytics/attribution.py` | 5 attribution models |
+| **🔗 Hub** | `integrations/unified_adapter.py` | 8+ marketing platforms |
+| **👥 CRM** | `crm/__init__.py` | Leads, deals, pipeline |
 
 ---
 
-## 🎯 What Marketic Does
+## Quick Start
 
 ```bash
-# Start the MCP server
-python3 mcp_server.py
-
-# Analyze a competitor
-echo '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"analyze_competitor","arguments":{"brand":"HubSpot"}},"id":1}' | python3 mcp_server.py
-```
-
-**Output:**
-```json
-{
-  "competitor": "HubSpot",
-  "analysis": "HubSpot dominates with all-in-one platform...",
-  "confidence": 0.85,
-  "models_used": ["stealth/ox-alpha"],
-  "cost": 0.0,
-  "analyzed_at": "2026-08-23T14:15:40"
-}
-```
-
-**Why this is different:** Marketic exposes 43 marketing intelligence tools via MCP (Model Context Protocol), with ensemble AI voting, full audit trails, and transparent decision reasoning.
-
----
-
-## 🔌 MCP Server — 43 Tools
-
-| Category | Tools | Description |
-|----------|-------|-------------|
-| **GTM Strategy** | `analyze_competitor`, `compare_competitors`, `analyze_positioning` | Competitive intel, positioning maps, gap analysis |
-| **Creative** | `generate_creatives`, `generate_social_posts`, `generate_seo_content` | Multi-channel ad copy, social posts, SEO articles |
-| **Campaigns** | `build_campaign`, `optimize_budget` | Full campaign generation, ROAS-based budget rebalancing |
-| **Narrative** | `generate_narrative` | Brand stories, thought leadership, industry analysis |
-| **Signals** | `collect_signals` | Product Hunt, Hacker News, Twitter, Reddit intelligence |
-| **Analytics** | `get_attribution` | 5 attribution models (first-touch, last-touch, linear, time-decay, position-based) |
-| **Hub Connect** | `hub_*` (9 tools) | Unified multi-platform orchestration |
-| **CRM** | `crm_*` (8 tools) | Leads, deals, pipeline, activity logging |
-| **Ensemble AI** | `ensemble_vote` | Multi-model voting with confidence scoring |
-| **Audit Trail** | `audit_log`, `audit_get_log`, `audit_get_cost_summary` | Full AI decision logging |
-
-### Quick Test
-
-```bash
-# List all tools
-echo '{"jsonrpc":"2.0","method":"tools/list","params":{},"id":1}' | python3 mcp_server.py
-
-# Run a sample
-python3 run_sample_campaigns.py
-```
-
----
-
-## 🧠 Ensemble AI Architecture
-
-Marketic uses **tiered model routing** for cost-effective intelligence:
-
-| Task Complexity | Models Used | Est. Cost |
-|----------------|-------------|-----------|
-| Simple (ad copy) | 1 cheap model | ~$0.0001 |
-| Medium (competitor analysis) | 1 mid-tier model | ~$0.002 |
-| Complex (campaign strategy) | 3 models parallel + voting | ~$0.05 |
-| Critical (brand narrative) | ox-alpha + premium models | FREE* |
-
-*ox-alpha via OpenCode Go is free
-
-**Available Models:**
-- `stealth/ox-alpha` — FREE via OpenCode Go
-- `qwen/qwen3.7-max` — Premium reasoning
-- `google/gemini-3.6-flash` — Fast, cost-effective
-- `deepseek/deepseek-v4-flash` — Budget option
-- `minimax/m3` — Via OpenCode Go
-
----
-
-## 📊 Audit Trail
-
-Every AI decision is logged with full transparency:
-
-```json
-{
-  "audit_id": "a1b2c3d4e5f6",
-  "timestamp": "2026-08-23T14:15:40",
-  "action": "generate_creatives",
-  "model": "stealth/ox-alpha",
-  "cost": 0.0,
-  "confidence": 0.87,
-  "reasoning_chain": [
-    "[stealth/ox-alpha] Lead with transformation angle...",
-    "[google/gemini-3.6-flash] Lead with social proof..."
-  ],
-  "human_approved": null,
-  "consensus": true
-}
-```
-
-Query audit logs:
-```
-audit_get_log(brand_id="acme", action="generate_creatives", limit=100)
-audit_get_cost_summary(start_date="2026-08-01")
-```
-
----
-
-## 🏗️ Architecture
-
-```
-Signal → Plan → Ensemble → Execute → Audit → Learn
-   ↓        ↓        ↓         ↓        ↓        ↓
- Collect  Route   Vote+Log  Deploy   Track   Quality
-         Model   Consensus  Multi   Cost    Loop
-                  +Fallback Platform
-```
-
-**Closed-Loop Learning:**
-1. **Collect** signals from Product Hunt, HN, Twitter, Reddit
-2. **Plan** with competitive analysis and positioning maps
-3. **Ensemble** vote across multiple models with confidence scoring
-4. **Execute** campaigns via Hub Connectors (WebEngage, HubSpot, etc.)
-5. **Audit** every decision with full reasoning chain
-6. **Learn** from attribution data and performance metrics
-
----
-
-## 🚀 Quick Start
-
-```bash
-# Clone
-git clone https://github.com/Das-rebel/marketic
-cd marketic
-
-# Install dependencies
+# Install
 pip install -e .
 
 # Initialize database
 python3 init_memory_db.py
 
-# Run MCP server
+# Run MCP server (stdio — works with any MCP client)
 python3 mcp_server.py
-
-# Run sample campaigns
-python3 run_sample_campaigns.py
 ```
 
-**Environment variables** (optional for AI features):
-```bash
-OPENROUTER_API_KEY=...     # For premium models
-OPENAI_API_KEY=sk-...      # Fallback
-WEBENGAGE_API_KEY=...      # Marketing platform integrations
-HUBSPOT_API_KEY=...
+Or import as a Python package:
+
+```python
+from marketic.ensemble.voting import EnsembleVoter
+from marketic.creative.copy_generator import CopyGenerator
+
+voter = EnsembleVoter()
+result = voter.vote(task_type="competitor_analysis", prompt="Analyze Drift's positioning")
+
+gen = CopyGenerator()
+variants = await gen.generate_variants(request)
 ```
 
 ---
 
-## 📁 Project Structure
+## Configuration
+
+| Variable | Purpose | Default |
+|----------|---------|---------|
+| `OPENROUTER_API_KEY` | Premium AI models (ox-alpha, gemini, qwen) | — |
+| `OPENAI_API_KEY` | Fallback AI | — |
+| `OPENCODE_GO_TOKEN` | **FREE** ox-alpha via OpenCode Go | — |
+| `WEBENGAGE_API_KEY` | Marketing platform integrations | — |
+| `HUBSPOT_API_KEY` | CRM + marketing hub | — |
+| `CLAY_API_KEY` | Prospect data enrichment | — |
+
+> 🔒 Set secrets in environment — never hardcode in the repo.
+
+---
+
+## How It Works
+
+**Simple tasks** → one cheap model (~$0.0001)
+```
+generate_creatives → deepseek flash → variant
+```
+
+**Complex tasks** → ensemble voting (~$0.05)
+```
+campaign_strategy → ox-alpha + qwen + gemini → vote → consensus → decision
+```
+
+**Every call is logged:**
+```json
+{
+  "audit_id": "a1b2c3d4",
+  "action": "generate_creatives",
+  "model": "stealth/ox-alpha",
+  "cost": 0.0,
+  "confidence": 0.87,
+  "reasoning_chain": ["[ox-alpha] Lead with transformation..."],
+  "human_approved": null
+}
+```
+
+Query logs: `audit_get_log()`, `audit_get_cost_summary()`
+
+---
+
+## MCP Tools — 43 Total
+
+| Category | Tools |
+|----------|-------|
+| **GTM** | `analyze_competitor`, `compare_competitors`, `analyze_positioning` |
+| **Creative** | `generate_creatives`, `generate_social_posts`, `generate_seo_content` |
+| **Campaign** | `build_campaign`, `optimize_budget` |
+| **Narrative** | `generate_narrative` |
+| **Signals** | `collect_signals` |
+| **Analytics** | `get_attribution` |
+| **Hub** | `hub_health_check`, `hub_sync_contact`, `hub_send_campaign`, `hub_broadcast_event`, `hub_create_segment`, `hub_search_prospects`, `hub_send_transactional`, `hub_list_platforms`, `hub_get_dashboard` |
+| **CRM** | `crm_create_lead`, `crm_create_deal`, `crm_move_deal`, `crm_log_activity`, `crm_get_dashboard`, `crm_search_leads`, `crm_get_pipeline`, `crm_get_timeline` |
+| **Ensemble** | `ensemble_vote` |
+| **Audit** | `audit_log`, `audit_get_log`, `audit_get_cost_summary` |
+| **Utilities** | `build_utm_url`, `parse_utm_params`, `run_workflow` |
+
+---
+
+## Ensemble AI — Model Tiers
+
+| Task | Model(s) | Est. Cost |
+|------|----------|-----------|
+| Ad copy | `deepseek/deepseek-v4-flash` | ~$0.0001 |
+| Social posts | `google/gemini-3.6-flash` | ~$0.001 |
+| Competitor analysis | `stealth/ox-alpha` | **FREE** |
+| Campaign strategy | `ox-alpha` + `qwen3.7-max` + `gemini-3.6-flash` | ~$0.05 |
+
+**Free tier:** ox-alpha via OpenCode Go (`stealth/ox-alpha`) — no API key needed.
+
+---
+
+## Repository Layout
 
 ```
 marketic/
-├── mcp_server.py              # MCP stdio server (43 tools)
-├── init_memory_db.py           # SQLite database setup
-├── run_sample_campaigns.py     # Sample campaign runner
+├── mcp_server.py                 # MCP stdio server (43 tools)
+├── init_memory_db.py              # SQLite setup
 ├── ensemble/
-│   ├── voting.py               # Multi-model ensemble voting
-│   └── audit_trail.py          # Full AI decision audit logging
+│   ├── voting.py                 # Multi-model ensemble voting
+│   └── audit_trail.py           # Full AI decision logging
 ├── creative/
-│   ├── copy_generator.py        # Multi-channel ad copy
+│   ├── copy_generator.py         # Multi-channel ad copy
 │   ├── social_generator.py      # Platform-specific social posts
-│   └── seo_generator.py         # SEO content with meta tags
+│   └── seo_generator.py         # SEO content + meta tags
 ├── campaign/
 │   ├── builder.py              # Full campaign generation
 │   └── budget_router.py         # ROAS-based budget rebalancing
 ├── gtm/
-│   ├── competitive.py          # Deep competitive analysis
-│   ├── positioning.py          # Market positioning maps
-│   └── narrative.py            # Brand stories & thought leadership
+│   ├── competitive.py           # Deep competitive analysis
+│   ├── positioning.py           # Market positioning maps
+│   └── narrative.py             # Brand stories + thought leadership
 ├── signals/
-│   └── collectors.py            # PH, HN, Twitter, Reddit collectors
+│   └── collectors.py            # PH, HN, Twitter, Reddit
 ├── analytics/
-│   └── attribution.py           # 5 multi-touch attribution models
+│   └── attribution.py            # 5 multi-touch models
 ├── integrations/
-│   └── unified_adapter.py       # 8+ platform connector hub
+│   └── unified_adapter.py        # 8+ platform hub
 ├── crm/
-│   └── __init__.py             # Full CRM (leads, deals, pipeline)
+│   └── __init__.py              # Leads, deals, activities
 └── memory/
     ├── brand_memory.py          # Brand context storage
     ├── voice_profile.py         # Brand voice training
-    └── embedding_index.py        # Semantic search
+    └── embedding_index.py       # Semantic search
 ```
 
 ---
 
-## 🔗 Integration with Quay
+## Audit Trail — Transparency by Default
 
-Marketic is the marketing intelligence engine for **Quay** (Autonomous AI Software Factory):
+Marketic logs every AI decision. No black boxes.
+
+```bash
+# See all decisions for a brand
+audit_get_log(brand_id="acme", limit=100)
+
+# Get cost breakdown
+audit_get_cost_summary(start_date="2026-08-01")
+```
+
+Every log entry captures:
+- **Model used** — track which model made the call
+- **Cost** — real-time spend tracking
+- **Confidence** — ensemble voting confidence score
+- **Reasoning chain** — what each model said
+- **Human approval** — null (auto), true (approved), false (rejected)
+
+---
+
+## Campaign Example
+
+```python
+# Build and launch a multi-channel campaign
+campaign = await builder.build(
+    name="Q3 Product Launch",
+    objective=CampaignObjective.PURCHASES,
+    target_audience="SMB founders",
+    channels=["email", "social", "paid_search"],
+    timeline_weeks=6,
+    total_budget=25000,
+)
+
+# Optimize budget based on attribution
+allocations = await budget_router.rebalance(
+    total_budget=25000,
+    channel_data={"email": {"spend": 5000, "roas": 4.2}, "social": {"spend": 10000, "roas": 2.1}},
+    strategy="roas_optimized",
+)
+```
+
+---
+
+## Integration
+
+Marketic works as:
+- **MCP server** — stdio JSON-RPC, works with any MCP client
+- **Python package** — import modules directly
+- **Quay integration** — drop-in marketing intelligence engine
 
 ```typescript
-// Quay marketing config
-export const MARKETIC_MCP_CONFIG = {
+// Quay config
+const MARKETIC_MCP = {
   name: 'marketic',
   command: 'python3',
-  args: ['/Users/Subho/marketic/mcp_server.py'],
+  args: ['/path/to/marketic/mcp_server.py'],
 };
 ```
 
 ---
 
-## ⚡ Sample Campaigns
-
-| Campaign | Tools Chained | Status |
-|----------|--------------|--------|
-| **Position-and-Attack** | `analyze_competitor` → `analyze_positioning` → `generate_creatives` | ✅ |
-| **ROAS Optimizer** | `get_attribution` → `optimize_budget` | ✅ |
-| **Creative Engine** | `generate_creatives` → `generate_social_posts` → `build_campaign` | ✅ |
-| **Signal Intelligence** | `collect_signals` → `generate_narrative` | ✅ |
-| **Ensemble Decision** | `ensemble_vote` → `audit_log` → `hub_sync_contact` | ✅ |
-
----
-
-## 📈 Differentiation
-
-| Tool | What it does | Marketic advantage |
-|------|-------------|-------------------|
-| Generic AI | Black-box marketing | **Transparent**: every decision logged with reasoning |
-| HubSpot/Marketo | Enterprise platforms | **Open**: ensemble AI that learns from performance |
-| Link trackers | Attribution only | **Full stack**: attribution + competitive intel + creative |
-
----
-
-## License
-
-MIT © Subhajit Das
+MIT © Subho Das
