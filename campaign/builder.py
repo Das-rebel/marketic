@@ -89,30 +89,42 @@ class CampaignBuilder:
         total_budget: float = 10000,
     ) -> Campaign:
         """Build a complete campaign."""
+        try:
+            # Input validation
+            if not name or not name.strip():
+                raise ValueError("Campaign name is required")
+            if total_budget <= 0:
+                raise ValueError("Budget must be positive")
+            if timeline_weeks <= 0:
+                raise ValueError("Timeline must be at least 1 week")
+            if not channels:
+                raise ValueError("At least one channel is required")
 
-        # Generate campaign components
-        timeline = self._build_timeline(timeline_weeks, objective)
-        budget = self._allocate_budget(total_budget, channels, objective)
-        tactics = self._generate_tactics(channels, objective, target_audience)
+            # Generate campaign components
+            timeline = self._build_timeline(timeline_weeks, objective)
+            budget = self._allocate_budget(total_budget, channels, objective)
+            tactics = self._generate_tactics(channels, objective, target_audience)
 
-        # Calculate estimates
-        reach = self._estimate_reach(total_budget, channels, objective)
-        conversions = self._estimate_conversions(reach, objective)
-        roas = self._estimate_roas(conversions, total_budget, objective)
+            # Calculate estimates
+            reach = self._estimate_reach(total_budget, channels, objective)
+            conversions = self._estimate_conversions(reach, objective)
+            roas = self._estimate_roas(conversions, total_budget, objective)
 
-        return Campaign(
-            campaign_id=str(uuid.uuid4())[:12],
-            name=name,
-            objective=objective.value,
-            target_audience=target_audience,
-            channels=channels,
-            timeline=timeline,
-            budget=budget,
-            tactics=tactics,
-            estimated_reach=reach,
-            estimated_conversions=conversions,
-            estimated_roas=roas,
-        )
+            return Campaign(
+                campaign_id=str(uuid.uuid4())[:12],
+                name=name,
+                objective=objective.value,
+                target_audience=target_audience,
+                channels=channels,
+                timeline=timeline,
+                budget=budget,
+                tactics=tactics,
+                estimated_reach=reach,
+                estimated_conversions=conversions,
+                estimated_roas=roas,
+            )
+        except (ValueError, TypeError, KeyError) as e:
+            raise ValueError(f"Failed to build campaign: {e}") from e
 
     def _build_timeline(
         self, weeks: int, objective: CampaignObjective
