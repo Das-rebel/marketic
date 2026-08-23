@@ -5,6 +5,7 @@ Brand Voice Profile — Extract, score, and adapt content to brand voice.
 import os
 import re
 from typing import Dict, List, Optional, Any
+from dataclasses import dataclass, field
 
 # Try to import sentence-transformers for semantic similarity
 try:
