@@ -1009,7 +1009,14 @@ async def handle_crm_get_timeline(args):
 # UTM & Workflow handlers
 async def handle_build_utm_url(args):
     from marketic.integrations.unified_adapter import build_utm_url
-    url = build_utm_url(base_url=args["base_url"], source=args["source"], medium=args["medium"], campaign=args["campaign"], content=args.get("content"), term=args.get("term"))
+    url = build_utm_url(
+        base_url=args["base_url"],
+        source=args["source"],
+        medium=args["medium"],
+        campaign=args["campaign"],
+        content=args.get("content"),
+        term=args.get("term")
+    )
     return {"url": url}
 
 
@@ -1021,39 +1028,51 @@ async def handle_parse_utm_params(args):
 async def handle_run_workflow(args):
     from marketic.integrations.unified_adapter import MarketingHub, MarketingWorkflow
     import os
-    wf = MarketingWorkflow(workflow_id=args["workflow_id"], name=args.get("name", ""))
+    
+    wf = MarketingWorkflow(
+        workflow_id=args["workflow_id"],
+        name=args.get("name", "")
+    )
+    
     for step in args["steps"]:
-        wf.add_step(step_id=step["step_id"], action=step["action"], params=step.get("params", {}), on_success=step.get("on_success"), on_failure=step.get("on_failure"), is_first=(step["step_id"] == args["first_step"]))
+        wf.add_step(
+            step_id=step["step_id"],
+            action=step["action"],
+            params=step.get("params", {}),
+            on_success=step.get("on_success"),
+            on_failure=step.get("on_failure"),
+            is_first=(step["step_id"] == args["first_step"])
+        )
+    
     hub = MarketingHub()
     platforms = {
-        "webengage": {"api_key": os.getenv("WEBENGAGE_API_KEY", ""), "license_code": os.getenv("WEBENGAGE_LICENSE_CODE", "")},
+        "webengage": {
+            "api_key": os.getenv("WEBENGAGE_API_KEY", ""),
+            "license_code": os.getenv("WEBENGAGE_LICENSE_CODE", "")
+        },
         "hubspot": {"api_key": os.getenv("HUBSPOT_API_KEY", "")},
-        "clevertap": {"account_id": os.getenv("CLEVERTAP_ACCOUNT_ID", ""), "passcode": os.getenv("CLEVERTAP_PASSCODE", "")},
-        "braze": {"api_key": os.getenv("BRAZE_API_KEY", ""), "app_id": os.getenv("BRAZE_APP_ID", "")},
+        "clevertap": {
+            "account_id": os.getenv("CLEVERTAP_ACCOUNT_ID", ""),
+            "passcode": os.getenv("CLEVERTAP_PASSCODE", "")
+        },
+        "braze": {
+            "api_key": os.getenv("BRAZE_API_KEY", ""),
+            "app_id": os.getenv("BRAZE_APP_ID", "")
+        },
         "mailchimp": {"api_key": os.getenv("MAILCHIMP_API_KEY", "")},
     }
+    
     for platform, creds in platforms.items():
         if any(creds.values()):
             try:
                 hub.connect(platform, **creds)
-            except Exception:
-                pass
+            except Exception as e:
+                sys.stderr.write(f"[marketic MCP] Hub connect error for {platform}: {e}\n")
+    
     await hub.initialize()
     result = await wf.execute(hub)
-    # Convert result to dict with deep serialization
-    def deep_serialize(obj):
-        if isinstance(obj, dict):
-            return {k: deep_serialize(v) for k, v in obj.items() if not str(k).startswith('_')}
-        elif isinstance(obj, list):
-            return [deep_serialize(item) for item in obj]
-        elif hasattr(obj, 'value'):  # Enum
-            return obj.value
-        elif hasattr(obj, '__dict__'):  # Custom object
-            return {k: deep_serialize(v) for k, v in vars(obj).items() if not str(k).startswith('_')}
-        else:
-            return obj
-    serialized = deep_serialize(result)
-    return serialized
+    # Use shared _serialize helper
+    return _serialize(result)
 
 
 # Ensemble & Audit handlers
@@ -1247,7 +1266,8 @@ class MCPServer:
                 return None
             try:
                 result = asyncio.run(handler(tool_args))
-                self.send({"jsonrpc": "2.0", "id": msg_id, "result": {"content": [{"type": "text", "text": json.dumps(result)}]}})
+                serialized = _serialize(result)
+                self.send({"jsonrpc": "2.0", "id": msg_id, "result": {"content": [{"type": "text", "text": json.dumps(serialized)}]}})
             except Exception as e:
                 sys.stderr.write(f"[marketic MCP] Tool {tool_name} error: {e}\n")
                 self.send({"jsonrpc": "2.0", "id": msg_id, "error": {"code": -32603, "message": str(e)}})
