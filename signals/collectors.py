@@ -335,3 +335,162 @@ def aggregate_signals(all_signals: List[MarketingSignal]) -> Dict[str, Any]:
         "sentiment_breakdown": sentiment_counts,
         "top_signals": sorted(all_signals, key=lambda x: x.engagement_score, reverse=True)[:10],
     }
+
+
+# ─── Parallel Fan-Out (last30days-skill pattern) ──────────────────────────────
+# Vault-sourced: github.com/mvanhorn/last30days-skill — search all sources in
+# parallel, score by REAL engagement, synthesize into ONE brief.
+
+import asyncio as _asyncio
+
+
+class PolymarketCollector:
+    """Prediction-market implied demand. Unique signal: real money on real outcomes."""
+
+    async def collect(self, limit: int = 50, query: str = "") -> List[MarketingSignal]:
+        signals = []
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                # Gamma API — public markets data
+                resp = await client.get(
+                    "https://gamma-api.polymarket.com/events",
+                    params={"limit": limit, "active": "true", "closed": "false",
+                            **({"search": query} if query else {})},
+                )
+                if resp.status_code == 200:
+                    for ev in resp.json()[:limit]:
+                        volume = float(ev.get("volume", 0) or 0)
+                        signals.append(MarketingSignal(
+                            source="polymarket",
+                            signal_type="prediction_market",
+                            title=ev.get("title", ""),
+                            url=ev.get("slug") and f"https://polymarket.com/event/{ev['slug']}" or "",
+                            engagement_score=volume,  # real dollars = strongest signal
+                            sentiment="neutral",
+                            topics=[t.get("label", "").lower() for t in ev.get("tags", [])[:3]],
+                            timestamp=ev.get("startDate", ""),
+                            metadata={"volume_usd": volume, "liquidity": ev.get("liquidity")},
+                        ))
+        except Exception as e:
+            print(f"Polymarket error: {e}")
+        return signals
+
+
+# Engagement-score normalization: raw scores across sources are incomparable
+# (HN points ≠ Reddit karma ≠ USD volume). Normalize per-source to 0-1, then weight.
+SOURCE_WEIGHTS = {
+    "polymarket": 1.0,   # real money — strongest
+    "hacker_news": 0.8,  # technical early-adopter density
+    "reddit": 0.7,       # community depth, slower
+    "product_hunt": 0.6, # launch-day spike bias
+    "twitter": 0.5,      # highest noise floor
+}
+
+
+def _normalize_scores(signals: List[MarketingSignal]) -> List[MarketingSignal]:
+    """Min-max normalize engagement within each source, apply source weight."""
+    by_source: Dict[str, List[MarketingSignal]] = {}
+    for s in signals:
+        by_source.setdefault(s.source, []).append(s)
+
+    for source, group in by_source.items():
+        scores = [s.engagement_score for s in group]
+        lo, hi = min(scores), max(scores)
+        span = (hi - lo) or 1.0
+        w = SOURCE_WEIGHTS.get(source, 0.5)
+        for s in group:
+            s.metadata["normalized_score"] = round(
+                ((s.engagement_score - lo) / span) * w, 4
+            )
+    return signals
+
+
+class SignalFanout:
+    """
+    Parallel fan-out across all sources → cross-source normalized scoring →
+    one synthesized brief.
+
+    Usage:
+        fanout = SignalFanout()
+        brief = await fanout.run(query="ai agents", limit_per_source=25)
+    """
+
+    def __init__(self):
+        self.collectors = {
+            "product_hunt": ProductHuntCollector(),
+            "hacker_news": TrendsCollector(),
+            "twitter": TwitterCollector(),
+            "reddit": RedditCollector(),
+            "polymarket": PolymarketCollector(),
+        }
+
+    async def run(self, query: str = "", sources: Optional[List[str]] = None,
+                  limit_per_source: int = 25) -> Dict[str, Any]:
+        """Fan out, gather, normalize, synthesize."""
+        active = {k: v for k, v in self.collectors.items()
+                  if not sources or k in sources}
+
+        # Parallel fan-out — failures isolated per source
+        results = await _asyncio.gather(
+            *(c.collect(limit=limit_per_source) for c in active.values()),
+            return_exceptions=True,
+        )
+
+        all_signals: List[MarketingSignal] = []
+        errors = {}
+        for name, result in zip(active.keys(), results):
+            if isinstance(result, Exception):
+                errors[name] = str(result)
+            elif isinstance(result, list):
+                # Filter by query relevance if given
+                if query:
+                    q = query.lower()
+                    matched = [s for s in result
+                               if q in s.title.lower() or any(q in t for t in s.topics)]
+                    all_signals.extend(matched if matched else result[:5])
+                else:
+                    all_signals.extend(result)
+
+        if not all_signals:
+            return {"query": query, "total": 0, "brief": None,
+                    "errors": errors}
+
+        all_signals = _normalize_scores(all_signals)
+        return {"query": query, "total": len(all_signals),
+                "errors": errors, **self.synthesize(all_signals)}
+
+    def synthesize(self, signals: List[MarketingSignal]) -> Dict[str, Any]:
+        """One brief from N sources: consensus themes, outliers, momentum."""
+        ranked = sorted(signals,
+                        key=lambda s: s.metadata.get("normalized_score", 0),
+                        reverse=True)
+
+        # Cross-source consensus: same topic appearing in ≥2 sources = stronger
+        topic_sources: Dict[str, set] = {}
+        for s in signals:
+            for t in s.topics:
+                if t:
+                    topic_sources.setdefault(t, set()).add(s.source)
+        consensus_themes = sorted(
+            [(t, len(srcs)) for t, srcs in topic_sources.items() if len(srcs) >= 2],
+            key=lambda x: (-x[1], x[0]),
+        )[:8]
+
+        # Money outlier: polymarket item ranking above social chatter
+        money_outliers = [s for s in ranked[:15] if s.source == "polymarket"][:3]
+
+        base = aggregate_signals(signals)
+        base.pop("top_signals", None)
+        base.update({
+            "brief_top_10": [
+                {"source": s.source, "title": s.title[:120], "url": s.url,
+                 "score": s.metadata.get("normalized_score"), "engagement_raw": s.engagement_score}
+                for s in ranked[:10]
+            ],
+            "consensus_themes": [f"{t} ({n} sources)" for t, n in consensus_themes],
+            "money_outliers": [
+                {"title": s.title[:100], "volume_usd": s.metadata.get("volume_usd"), "url": s.url}
+                for s in money_outliers
+            ],
+        })
+        return base

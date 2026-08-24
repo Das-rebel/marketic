@@ -3,6 +3,7 @@ Design Templates — Platform-specific visual content templates.
 """
 
 import os
+import json
 from typing import Dict, List, Optional, Any
 from dataclasses import dataclass, field
 from enum import Enum
@@ -43,6 +44,63 @@ class BrandTokens:
             "{{brand.name}}": self.name.upper(),
             "{{brand.tagline}}": self.tagline.upper(),
         }
+
+    @classmethod
+    def from_image(cls, image_url: str, brand_name: str = "", api_key: str = None) -> "BrandTokens":
+        """
+        Bootstrap tokens from one reference image (screenshot/logo/post).
+        Vault-sourced: @EXM7777 style-cloning - vision model extracts the
+        style descriptor; we map it onto tokens.
+        Falls back to defaults when no vision API is configured.
+        """
+        import base64 as _b64
+        key = api_key or os.environ.get("OPENROUTER_API_KEY") or os.environ.get("OPENAI_API_KEY")
+        if not key:
+            return cls(name=brand_name or "Brand")
+
+        prompt = (
+            'Extract this brand\'s visual identity as strict JSON only: '
+            '{"primary_color": "#hex", "background_color": "#hex", '
+            '"accent_color": "#hex", "secondary_color": "#hex", '
+            '"font_primary": "closest common font name", "tagline": "any visible tagline"}'
+        )
+        try:
+            import httpx
+            headers = {"Authorization": f"Bearer {key}"}
+            content: Any = [{"type": "text", "text": prompt}]
+            if image_url.startswith("http"):
+                content.append({"type": "image_url", "image_url": {"url": image_url}})
+            else:  # local file -> base64 data URL
+                with open(image_url, "rb") as f:
+                    b64 = _b64.b64encode(f.read()).decode()
+                content.append({"type": "image_url",
+                                "image_url": {"url": f"data:image/png;base64,{b64}"}})
+
+            base = ("https://openrouter.ai/api/v1" if key.startswith("sk-or-")
+                    else "https://api.openai.com/v1")
+            resp = httpx.post(
+                f"{base}/chat/completions",
+                headers=headers,
+                json={"model": "openai/gpt-4o-mini" if key.startswith("sk-or-") else "gpt-4o-mini",
+                      "messages": [{"role": "user", "content": content}], "max_tokens": 300},
+                timeout=60.0,
+            )
+            if resp.status_code == 200:
+                text = resp.json()["choices"][0]["message"]["content"]
+                text = text[text.find("{"): text.rfind("}") + 1]
+                data = json.loads(text)
+                return cls(
+                    name=brand_name or "Brand",
+                    tagline=data.get("tagline", ""),
+                    primary_color=data.get("primary_color", cls.primary_color),
+                    background_color=data.get("background_color", cls.background_color),
+                    accent_color=data.get("accent_color", cls.accent_color),
+                    secondary_color=data.get("secondary_color", cls.secondary_color),
+                    font_primary=data.get("font_primary", cls.font_primary),
+                )
+        except Exception as e:
+            print(f"[BrandTokens.from_image] extraction failed: {e}")
+        return cls(name=brand_name or "Brand")
 
     @classmethod
     def from_brand_memory(cls, brand_record: Dict[str, Any]) -> "BrandTokens":

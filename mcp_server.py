@@ -433,6 +433,41 @@ TOOLS = [
             "required": ["workflow_id", "steps", "first_step"],
         },
     },
+    {
+        "name": "generate_brief",
+        "description": "Generate a self-contained campaign brief (handoff artifact) for any brand execution agent: positioning, budget split, posting windows, resolved BrandTokens, and execution contract. The agent can execute without calling back.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "campaign_name": {"type": "string"},
+                "objective": {"type": "string", "enum": ["awareness", "consideration", "conversion", "lead_generation", "retention"]},
+                "product_name": {"type": "string"},
+                "product_description": {"type": "string"},
+                "target_audience": {"type": "string", "default": ""},
+                "channels": {"type": "array", "items": {"type": "string"}, "default": ["social", "email"]},
+                "total_budget": {"type": "number", "default": 10000},
+                "duration_weeks": {"type": "integer", "default": 4},
+                "key_benefits": {"type": "array", "items": {"type": "string"}, "default": []},
+                "brand_tokens": {"type": "object", "description": "Brand kit: name, colors, font, handle, voice_notes"},
+                "channel_performance": {"type": "object", "description": "channel -> {spend, roas, contribution_margin, conversions}"},
+                "positioning_summary": {"type": "string", "default": ""},
+                "competitor_insights": {"type": "string", "default": ""},
+            },
+            "required": ["campaign_name", "objective", "product_name", "product_description"],
+        },
+    },
+    {
+        "name": "signal_fanout",
+        "description": "Parallel multi-source signal search (Product Hunt, HN, Twitter, Reddit, Polymarket) with cross-source engagement normalization. Returns one synthesized brief with consensus themes and money outliers.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "query": {"type": "string", "default": ""},
+                "sources": {"type": "array", "items": {"type": "string"}, "default": []},
+                "limit_per_source": {"type": "integer", "default": 25},
+            },
+        },
+    },
     # Ensemble & Audit Tools
     {
         "name": "ensemble_vote",
@@ -1154,6 +1189,36 @@ async def handle_audit_get_cost_summary(args):
     return summary
 
 
+# Brief & Signal handlers
+async def handle_generate_brief(args):
+    from marketic.execution.brief import generate_brief
+    return generate_brief(
+        campaign_name=args["campaign_name"],
+        objective=args["objective"],
+        product_name=args["product_name"],
+        product_description=args["product_description"],
+        target_audience=args.get("target_audience", ""),
+        channels=args.get("channels"),
+        total_budget=args.get("total_budget", 10000),
+        duration_weeks=args.get("duration_weeks", 4),
+        key_benefits=args.get("key_benefits"),
+        brand_tokens=args.get("brand_tokens"),
+        channel_performance=args.get("channel_performance"),
+        positioning_summary=args.get("positioning_summary", ""),
+        competitor_insights=args.get("competitor_insights", ""),
+    )
+
+
+async def handle_signal_fanout(args):
+    from marketic.signals.collectors import SignalFanout
+    fanout = SignalFanout()
+    return await fanout.run(
+        query=args.get("query", ""),
+        sources=args.get("sources") or None,
+        limit_per_source=args.get("limit_per_source", 25),
+    )
+
+
 # ─── Handler Registry ─────────────────────────────────────────
 
 HANDLERS = {
@@ -1193,6 +1258,8 @@ HANDLERS = {
     "audit_log": handle_audit_log,
     "audit_get_log": handle_audit_get_log,
     "audit_get_cost_summary": handle_audit_get_cost_summary,
+    "generate_brief": handle_generate_brief,
+    "signal_fanout": handle_signal_fanout,
 }
 
 
