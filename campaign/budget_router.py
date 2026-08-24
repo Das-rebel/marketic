@@ -28,6 +28,15 @@ class ChannelPerformance:
     impressions: int = 0
     clicks: int = 0
     ctr: float = 0.0
+    # Margin-aware metrics (S-tier per vault eComm metrics research)
+    contribution_margin: float = 1.0   # gross margin after COGS + variable costs (0-1)
+    new_customer_ratio: float = 0.5    # new vs returning split
+
+    @property
+    def margin_adjusted_roas(self) -> float:
+        """ROAS weighted by contribution margin — the number that actually matters.
+        A 5x ROAS at 20% margin is worth less than a 2x ROAS at 80% margin."""
+        return self.roas * self.contribution_margin
 
 
 class BudgetRouter:
@@ -58,6 +67,8 @@ class BudgetRouter:
                 impressions=data.get("impressions", 0),
                 clicks=data.get("clicks", 0),
                 ctr=data.get("ctr", 0),
+                contribution_margin=data.get("contribution_margin", 1.0),
+                new_customer_ratio=data.get("new_customer_ratio", 0.5),
             )
             performances.append(perf)
 
@@ -86,8 +97,8 @@ class BudgetRouter:
         total_spend = sum(p.spend for p in performances)
         
         for perf in performances:
-            # ROAS score (higher is better)
-            roas_score = perf.roas if perf.roas > 0 else 0.5
+            # Margin-adjusted ROAS: raw ROAS is vanity when margins vary by channel.
+            roas_score = perf.margin_adjusted_roas if perf.roas > 0 else 0.5 * perf.contribution_margin
             
             # Efficiency: conversions per dollar
             efficiency = perf.conversions / perf.spend if perf.spend > 0 else 0
