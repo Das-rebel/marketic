@@ -10,6 +10,7 @@ Via Quay:        spawned automatically by quay/src/server/marketing/config.ts
 
 import sys
 import json
+from dataclasses import asdict
 import asyncio
 import traceback
 from typing import Any, Dict, List, Optional
@@ -465,6 +466,20 @@ TOOLS = [
                 "query": {"type": "string", "default": ""},
                 "sources": {"type": "array", "items": {"type": "string"}, "default": []},
                 "limit_per_source": {"type": "integer", "default": 25},
+            },
+        },
+    },
+    {
+        "name": "analyze_competitor_ad",
+        "description": "Deconstruct a competitor ad (image/video frame URL or local path) via VLM: hook, pacing, psychological triggers, CTA, counter-angles. Falls back to copy heuristics when no vision backend available. Use derive=true to aggregate multiple ads into a counter-brief for generate_creatives.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "image_path_or_url": {"type": "string", "default": ""},
+                "transcript": {"type": "string", "default": ""},
+                "caption": {"type": "string", "default": ""},
+                "batch": {"type": "array", "items": {"type": "object"}, "description": "list of {image_path_or_url, transcript, caption}"},
+                "derive": {"type": "boolean", "default": False, "description": "return aggregated counter-brief instead of raw breakdowns"},
             },
         },
     },
@@ -1219,6 +1234,34 @@ async def handle_signal_fanout(args):
     )
 
 
+async def handle_analyze_competitor_ad(args):
+    try:
+        from gtm.ad_analysis import AdAnalyzer
+    except ImportError:
+        from marketic.gtm.ad_analysis import AdAnalyzer
+    analyzer = AdAnalyzer()
+
+    def _ser(b):
+        d = asdict(b) if hasattr(b, "__dataclass_fields__") else b.__dict__
+        return d
+
+    if args.get("batch"):
+        breakdowns = analyzer.analyze_batch(args["batch"])
+        if args.get("derive"):
+            return analyzer.derive_counter_brief(breakdowns)
+        return {"breakdowns": [_ser(b) for b in breakdowns], "count": len(breakdowns)}
+
+    b = analyzer.analyze(
+        image_path_or_url=args.get("image_path_or_url", ""),
+        transcript=args.get("transcript", ""),
+        caption=args.get("caption", ""),
+    )
+    result = _ser(b)
+    if args.get("derive"):
+        return {"counter_brief": analyzer.derive_counter_brief([b]), "breakdown": result}
+    return result
+
+
 # ─── Handler Registry ─────────────────────────────────────────
 
 HANDLERS = {
@@ -1260,6 +1303,7 @@ HANDLERS = {
     "audit_get_cost_summary": handle_audit_get_cost_summary,
     "generate_brief": handle_generate_brief,
     "signal_fanout": handle_signal_fanout,
+    "analyze_competitor_ad": handle_analyze_competitor_ad,
 }
 
 
