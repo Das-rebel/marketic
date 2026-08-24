@@ -1,182 +1,147 @@
-# Marketic — Marketing Intelligence OS
+# Marketic - Marketing Intelligence Platform
 
-A white-label AI marketing platform that generates strategic briefs for execution agents — startup-friendly, MCP-ready, and built to adapt to any brand, budget, or market.
+**Transform market signals into execution-ready briefs. Every decision auditable. All tools open.**
 
----
+[![GitHub stars](https://img.shields.io/github/stars/Das-rebel/marketic)](https://github.com/Das-rebel/marketic)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-## For Startups: Why This Exists (Quick Version)
+---**
 
-You have a product. You have potential customers. You don't have a 10-person marketing team to turn market noise into a plan.
-
-Marketic takes 5 sources of market data (Polymarket bets, HN threads, Reddit discussions, Twitter trends, Product Hunt launches), finds what's actually important, and writes the brief your team (or AI agents) can act on.
-
-**You don't need a marketing expert. You need a marketing brain that works.**
-
----
-
-## Key Features That Adapt With You
-
-| Feature | How It Adapts To You |
-|---|---|
-| **Signal Fan-Out** | Pick your sources: just Polymarket? Just HN? Add Reddit, Twitter, Product Hunt as you grow |
-| **Brand-as-Data** | One template renders your brand colors, font, and tone — swap brand by changing tokens |
-| **Margin-Aware Budgeting** | Works at $500/month or $50K/month; scales with your contribution margins |
-| **Ensemble AI** | Uses cheap/free models (ox-alpha FREE, gemini-flash) first; escalates only when needed |
-| **MCP Server (39 tools)** | Drop into any existing AI pipeline — Claude, Cursor, custom agents |
-| **Execution Brief Handoff** | Produces structured JSON briefs any agent can consume — no custom integrations needed |
-| **Audit Trail** | Track every AI decision for transparency — critical for investor reporting |
-
----
-
-## Quick Launch (5 Minutes)
+## Quick Launch (2 Commands)
 
 ```bash
-# 1. Clone
-git clone https://github.com/Das-rebel/marketic && cd marketic
-
-# 2. Install (Python 3.11+ only)
-pip install -e .
-
-# 3. Initialize database
-python3 init_memory_db.py
-
-# 4. See what's happening right now
-python3 daily_briefing.py "ai marketing"
-
-# 5. Start the MCP server (connect from Claude, Cursor, etc.)
-python3 mcp_server.py
+git clone https://github.com/Das-rebel/marketic
+cd marketic && pip install -e .
+python3 daily_briefing.py "ai agents"
 ```
 
-### First Output (Real Example)
+> **Output in 60 seconds**: Live briefing with Polymarket signals, AI spend from audit trail, and pipeline status.
+
+---
+
+## What This Does
+
+Marketic analyzes market signals and competitor data to generate comprehensive marketing briefs.
+
+**Briefs include:**
+- Campaign strategy and channel mix
+- Budget allocation by channel  
+- Creative briefs with hook, pacing, and value proposition
+- Posting schedule recommendations
+- Brand-consistent messaging
+
+All decisions are traceable through an audit trail.
+
+---
+
+## Key Features (Showing Capabilities)
+
+| Feature | What It Does |
+|---|---|
+| **Signal Fan-Out** | Parallel collection from Polymarket, HN, Reddit, Twitter/X, and more — 21 matched signals daily |
+| **Probability-Adjusted Scoring** | `volume × P(YES)` — prevents overvaluing sensational but unlikely events (73.4% of Polymarket markets resolve "No") |
+| **VLM-Powered Ad Deconstruction** | Hooks, pacing, triggers, CTA, visual style, counter-angles from competitor ads |
+| **Ensemble AI Voting** | Multiple models compare responses; cost tracked per execution; audit trail logged |
+| **Margin-Aware Budgeting** | Optimizes `roas × contribution_margin` — not vanity ROAS |
+| **Brand-as-Data Engine** | Templates use `{{brand.primary}}` etc. — zero hardcoded colors; swap brand by changing tokens |
+| **MCP Server (39 tools)** | Full toolset exposed via stdio JSON-RPC; connects to Claude, Cursor, any MCP client |
+| **Execution Brief Handoff** | Structured JSON: positioning + copy + budget + timeline + resolved brand tokens |
+| **Audit Trail** | Every AI decision logged: model, cost, confidence, reasoning chain |
+| **Multi-Brand / Multi-Scale** | One codebase serves unlimited brands; scales from $500/mo to $50K/mo+ |
+
+---
+
+## Quick Launch (2 Commands)
+
+```bash
+git clone https://github.com/Das-rebel/marketic
+cd marketic && pip install -e .
+python3 daily_briefing.py "ai agents"
+```
+
+### First Output
 
 ```
-# ☀️ Marketic Daily Briefing — 2026-08-24
+# ☀️ Marketic Daily Briefing
 
-📡 Signals (21 matched across Polymarket, HN, Reddit, Twitter, PH)
-- [polymarket] Kraken IPO — $1.6M volume, 15% probability
-- [hacker_news] Anthropic's best model struggles to attract users
-- [reddit] AI agent implementations growing
+## 📡 Signals (21 matched)
+- [polymarket] Kraken IPO by ___ ?
+  https://polymarket.com/event/putin-out-before-2027
+- [hacker_news] Anthropic's best AI model struggles to attract users
 
-💰 Money Talking (Probability-Adjusted)
-- Kraken IPO: $247K effective (high probability, real demand)
-- Macron removal: $79K effective (low probability — drama, not deal)
+## 💰 Money talking (Polymarket):
+- Kraken IPO: $247K probability-adjusted effective
 
-🎯 Pipeline
-- Open deals: 0 · Leads: 0 · Revenue tracked
+## 🎯 Pipeline
+- Leads: 0 (avg score 0)
+- Open deals: 0 worth $0
 ```
-
-> **Startup tip:** The probability-adjusted score is designed specifically for lean teams — it prevents you from chasing viral but unlikely events instead of real demand.
 
 ---
 
 ## MCP Usage (For Customers / Integrators)
 
-Marketic exposes 39 MCP tools via `mcp_server.py`. Use with any MCP-compatible client:
+**Connect via stdio JSON-RPC**:
 
-### Claude / Anthropic
 ```json
 {
   "mcpServers": {
     "marketic": {
       "command": "python3",
-      "args": ["/Users/Subho/marketic/mcp_server.py"]
+      "args": ["/path/to/marketic/mcp_server.py"]
     }
   }
 }
 ```
 
-### Cursor / VS Code
-Add to `.cursor/mcp.json` or settings — same JSON structure.
+### Key MCP Tools (39 total)
 
-### Direct Python
-```python
-from marketic.mcp_server import MCPServer
-server = MCPServer()
-result = server.dispatch({"method": "tools/call", "params": {"name": "signal_fanout", "arguments": {"query":"AI agents"}}})
-```
-
-### Key MCP Tools by Use Case
-
-| You Need | Tool | Example
+| Category | Tool | Purpose |
 |---|---|---|
-| **Market intel** | `signal_fanout` | `"query": "marketing AI"` → 5-source synthesized brief |
-| **Competitor ads** | `analyze_competitor_ad` | Image URL → hook/pacing/triggers + counter-angles |
-| **Campaign build** | `build_campaign` | Objective + budget + timeline → full strategy |
-| **Creative variants** | `generate_creatives` | Brief → 10 variants with scores |
-| **Social posts** | `generate_social_posts` | Brand voice + topics → scheduled posts |
-| **Budget** | `optimize_budget` | Channel data + margins → allocation strategy |
-| **Brief export** | `generate_brief` | Campaign JSON → self-contained agent brief |
+| **Signal** | `signal_fanout` | 5-source parallel collection + consensus |
+| **Ad Analysis** | `analyze_competitor_ad` | VLM deconstruction → hook/pacing/triggers |
+| **Campaign** | `build_campaign` | 3-campaign funnel + margin budgeting |
+| **Creative** | `generate_creatives` | Variant generation + performance prediction |
+| **Brief** | `generate_brief` | Self-contained JSON for execution agents |
+| **Analytics** | `get_attribution` | 5-model comparison |
+| **CRM** | `add_lead`, `get_deals`, `update_lead` | Lead/pipeline management |
+| **AI Ops** | `ensemble_vote`, `audit_log`, `get_cost_summary` | Voting + transparency |
+
+> **MCP integration**: Drop `marketic/mcp_server.py` into any MCP-compatible client (Claude, Cursor, custom). All 39 tools use the same stdio interface.
 
 ---
 
-## Adaptability Features (Built In)
+## Adaptability (Built In)
 
-### Multi-Brand
-```python
-# One codebase, different brands
-from execution.design_templates import BrandTokens
-tokens = BrandTokens.from_brand_memory("brand_acme")
-# Same templates, different colors/fonts/tone
-```
-
-### Multi-Language / Region
-- Signal sources are configurable (filter by region, language, source)
-- Brand tokens include language preferences
-- Brief generation supports localization
-
-### Multi-Scale
-- $500/month startup: use free ox-alpha, local Ollama, no paid APIs
-- $50K/month: add OpenRouter vision, Serper enrichment, Clay deep-dive
-- Scale by adding sources — not by changing code
-
-### Custom Brief Formats
-The `generate_brief` MCP tool accepts any execution context:
-- Calendar-only (no budget details)
-- Full campaign (positioning + creative + budget + timeline + tokens)
-- Export formats (JSON, Markdown, HTML for different agents)
+| Adaptation | How It Works |
+|---|---|
+| **Brand swap** | `BrandTokens.from_image("new_brand.png")` or `from_brand_memory(record)` |
+| **Scale change** | Free models first (ox-alpha, gemini-flash); escalate only when needed |
+| **Source filter** | `signal_fanout(sources=["polymarket"])` or add Reddit/Twitter/PH |
+| **Brief format** | `generate_brief` accepts custom execution context — calendar-only, full campaign, or export format |
+| **Budget tier** | Free stack (local LLMs, no API keys) → Enriched (Serper enrichment) → Full (HubSpot/Clay integrations) |
 
 ---
 
-## Price / Cost Structure
+## Why Startups Choose Marketic
 
-| Tier | Cost | What's Included |
-|---|---|---|
-| **Free / Self-Hosted** | $0 | Core 39 tools, local LLM, ollama vision, free models (ox-alpha, gemini-flash) |
-| **Enriched** | ~$10/mo | Serper (cheap prospect enrichment), OpenRouter (better vision) |
-| **Full** | ~$50/mo | All integrations (HubSpot, Clay, Postiz), premium vision, full audit |
-
-No mandatory subscriptions for the core. The architecture is designed so you only pay for what you use — and the audit trail tells you exactly which calls cost what.
+- **No marketing expert needed** — the platform does the signal→brief translation
+- **$0 to start** — core 39 tools work with free local LLMs (Ollama, ox-alpha)
+- **Pay-as-you-grow** — only pay for enrichment APIs when needed
+- **Investor-ready audit** — every decision logged with model, cost, reasoning
+- **Ship fast** — `pip install -e .` + `python3 daily_briefing.py` gets you a briefing in 60 seconds
 
 ---
 
-## Real Results From Use
+## Documentation
 
-- **Signal fan-out**: 21 matched sources daily across 5 platforms
-- **Polymarket calibration**: $2.1M dramatic market correctly demoted to $84K (4% probability) — prevents chasing noise
-- **Campaign structure**: 3-campaign funnel (testing/scaling/retargeting) with single-ad testing
-- **Audit transparency**: Every decision logged with model, cost, and reasoning chain
-
----
-
-## Documentation & References
-
-- [`API_DOCUMENTATION.md`](API_DOCUMENTATION.md) — All 39 MCP tools with signatures
+- [`API_DOCUMENTATION.md`](API_DOCUMENTATION.md) — Complete 39-tool reference
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) — How to contribute
-- [`docs/VAULT_PICKS.md`](docs/VAULT_PICKS.md) — Evidence for every feature decision
-- [`docs/FEATURE_GAP_ANALYSIS.md`](docs/FEATURE_GAP_ANALYSIS.md) — Architecture reasoning
-- `daily_briefing.py` — Cronnable digest pipeline
-- `mcp_server.py` — MCP server (run with `python3 mcp_server.py`)
+- [`docs/FEATURE_GAP_ANALYSIS.md`](docs/FEATURE_GAP_ANALYSIS.md) — Architecture rationale
+- [`docs/VAULT_PICKS.md`](docs/VAULT_PICKS.md) — Evidence-backed feature decisions
 
 ---
 
-## What Comes Next (Built Into The Design)
+## License
 
-- Brain files (`brain/<brand>.md`) — versioned strategy learnings
-- Signal sources — TikTok transcripts, additional prediction markets
-- Execution integration — deeper Postiz/Runway/Paper MCP connections
-- Multi-brand orchestration — single brain, multiple execution agents
-
----
-
-**License:** MIT © Subho Das
-**Quick links:** [`README`](README.md) · [`API_DOCS`](API_DOCUMENTATION.md) · [`CONTRIBUTING`](CONTRIBUTING.md)
+MIT © Subho Das
