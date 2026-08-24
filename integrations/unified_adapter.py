@@ -292,6 +292,63 @@ class ClayAdapter(BaseAdapter):
         }
 
 
+class SerperProspectAdapter(BaseAdapter):
+    """
+    Vault-sourced cost arbitrage (@fin465): Apollo = $100/5K lookups,
+    Serper = $100/100K searches — same output, 92-94% cheaper.
+    Used as the FIRST enrichment hop; only escalate to Clay for the
+    residual contacts that search can't resolve.
+    """
+
+    def connect(self, **credentials):
+        self.api_key = credentials.get("api_key") or os.environ.get("SERPER_API_KEY", "")
+        self.connected = bool(self.api_key)
+        return self.connected
+
+    async def search_contacts(self, query: str, limit: int = 10) -> List[Contact]:
+        """Find prospects via Google search (Serper) — names/roles/companies."""
+        if not self.connected:
+            return []
+        try:
+            resp = httpx.post(
+                "https://google.serper.dev/search",
+                headers={"X-API-KEY": self.api_key, "Content-Type": "application/json"},
+                json={"q": f"{query} site:linkedin.com/in", "num": min(limit, 20)},
+                timeout=30.0,
+            )
+            if resp.status_code == 200:
+                contacts = []
+                for r in resp.json().get("organic", [])[:limit]:
+                    title = r.get("title", "")
+                    # "Name - Title at Company | LinkedIn" pattern
+                    name_part, _, rest = title.partition(" - ")
+                    company = r.get("title", "").split(" at ")[-1].split("|")[0].strip()
+                    contacts.append(Contact(
+                        contact_id=f"serper_{abs(hash(r.get('link','')))%10**10}",
+                        email="",  # enrichment of email happens downstream (Clay/Apollo)
+                        phone="",
+                        first_name=name_part.split()[0] if name_part else "",
+                        last_name=" ".join(name_part.split()[1:]) if name_part else "",
+                        company=company,
+                        job_title=rest.split("|")[0].replace(f"at {company}", "").strip(),
+                        lifecycle_stage="prospect",
+                        attributes={"source": "serper", "linkedin_url": r.get("link", "")},
+                        tags=["prospecting"],
+                    ))
+                return contacts
+        except Exception as e:
+            print(f"Serper search error: {e}")
+        return []
+
+    def health_check(self) -> Dict[str, Any]:
+        return {"platform": "serper", "status": "connected" if self.connected else "disconnected",
+                "connected": self.connected,
+                "note": "92-94% cheaper than Apollo per lookup; use before Clay"}
+
+
+class MarketingHub:
+    """Unified marketing hub that aggregates multiple platforms."""
+
 class MarketingHub:
     """Unified marketing hub that aggregates multiple platforms."""
 
@@ -304,6 +361,7 @@ class MarketingHub:
         self.adapters["webengage"] = WebEngageAdapter()
         self.adapters["hubspot"] = HubSpotAdapter()
         self.adapters["clay"] = ClayAdapter()
+        self.adapters["serper"] = SerperProspectAdapter()
 
     def connect(self, platform: str, **credentials) -> bool:
         """Connect to a specific platform."""

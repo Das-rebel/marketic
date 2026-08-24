@@ -299,6 +299,27 @@ class CampaignBuilder:
                     creative_recommendations=["Dynamic product ads", "Testimonial creative", "Limited offers"]
                 ),
             ],
+            "paid_social": [
+                ChannelTactic(
+                    channel="paid_social",
+                    tactic_name="3-Campaign Funnel Structure",
+                    description=(
+                        "Vault-sourced (@BakarBansal, +32% sales case): separate "
+                        "testing / scaling / retargeting campaigns. Testing ad sets "
+                        "carry EXACTLY ONE ad each so every creative gets a fair "
+                        "budget; winners graduate to scaling; retargeting only "
+                        "touches engaged non-converters."
+                    ),
+                    budget_percentage=0.50,
+                    timeline="All weeks",
+                    kpis=["testing: CPA within 2x target", "scaling: ROAS > 2x", "retargeting: ROAS > 4x"],
+                    creative_recommendations=[
+                        "1 ad per testing ad set — no exceptions",
+                        "graduate top 20% of creatives to scaling",
+                        "exclude converters from retargeting audiences",
+                    ],
+                ),
+            ],
             "paid_search": [
                 ChannelTactic(
                     channel="paid_search",

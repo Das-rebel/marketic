@@ -4,6 +4,7 @@ Signal Collectors — Marketing signals from Product Hunt, Hacker News, Twitter,
 
 import os
 import re
+import json
 import httpx
 from datetime import datetime, timedelta
 from typing import List, Dict, Any, Optional
@@ -345,7 +346,14 @@ import asyncio as _asyncio
 
 
 class PolymarketCollector:
-    """Prediction-market implied demand. Unique signal: real money on real outcomes."""
+    """Prediction-market implied demand. Unique signal: real money on real outcomes.
+
+    Vault-sourced calibration (@sterlingcrispin 'Nothing Ever Happens' bot):
+    ~73.4% of ALL Polymarket markets resolve "No" — raw volume massively
+    overweights long-shot sensationalism. We therefore score:
+        effective_volume = volume x implied_probability_of_YES
+    so a $1M market at 8% Yes ranks below a $200K market at 70% Yes.
+    """
 
     async def collect(self, limit: int = 50, query: str = "") -> List[MarketingSignal]:
         signals = []
@@ -360,20 +368,53 @@ class PolymarketCollector:
                 if resp.status_code == 200:
                     for ev in resp.json()[:limit]:
                         volume = float(ev.get("volume", 0) or 0)
+                        markets = ev.get("markets") or []
+                        yes_prob = self._implied_yes_probability(markets)
+                        effective = volume * yes_prob
                         signals.append(MarketingSignal(
                             source="polymarket",
                             signal_type="prediction_market",
                             title=ev.get("title", ""),
                             url=ev.get("slug") and f"https://polymarket.com/event/{ev['slug']}" or "",
-                            engagement_score=volume,  # real dollars = strongest signal
+                            # probability-adjusted: real money ON REAL OUTCOMES
+                            engagement_score=round(effective, 2),
                             sentiment="neutral",
                             topics=[t.get("label", "").lower() for t in ev.get("tags", [])[:3]],
                             timestamp=ev.get("startDate", ""),
-                            metadata={"volume_usd": volume, "liquidity": ev.get("liquidity")},
+                            metadata={
+                                "volume_usd": volume,
+                                "liquidity": ev.get("liquidity"),
+                                "implied_yes_prob": round(yes_prob, 3),
+                            },
                         ))
         except Exception as e:
             print(f"Polymarket error: {e}")
         return signals
+
+    @staticmethod
+    def _implied_yes_probability(markets: List[Dict]) -> float:
+        """
+        Extract implied P(YES) from Gamma market outcome prices.
+        Falls back to base rate (~0.266, i.e. 73.4% resolve No) when
+        prices are unavailable — deliberately conservative.
+        """
+        BASE_RATE_NO_RESOLVES = 0.266
+        probs = []
+        for m in markets[:5]:
+            try:
+                prices = m.get("outcomePrices")
+                if isinstance(prices, str):
+                    prices = json.loads(prices)
+                if prices and len(prices) >= 1:
+                    p = float(prices[0])
+                    if 0 < p < 1:
+                        probs.append(p)
+            except Exception:
+                continue
+        if not probs:
+            return BASE_RATE_NO_RESOLVES
+        # Event YES = best (max) market probability among its markets
+        return max(probs)
 
 
 # Engagement-score normalization: raw scores across sources are incomparable
