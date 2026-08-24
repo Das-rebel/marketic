@@ -56,12 +56,10 @@ python3 daily_briefing.py "ai agents"
 
 # MCP server (39 tools)
 python3 mcp_server.py
-
-# Cron it
-# 0 8 * * * cd ~/marketic && python3 daily_briefing.py >> logs/briefing.log 2>&1
 ```
 
-Live briefing output looks like:
+Live briefing output:
+
 ```
 📡 Signals (21 matched)
 - [hacker_news] Anthropic's best AI model struggles to attract users...
@@ -69,6 +67,8 @@ Live briefing output looks like:
 - Kraken IPO by ___? ($247K probability-adjusted)
 💸 AI Spend: 14 decisions · $0.0031 total
 ```
+
+Cron it: `0 8 * * * cd ~/marketic && python3 daily_briefing.py >> logs/briefing.log 2>&1`
 
 ---
 
@@ -78,34 +78,49 @@ Live briefing output looks like:
 
 **Philosophy:** Real dollars should count more than noisy mentions, but *only when they're betting on likely outcomes*. The platform itself is structurally biased toward spectacle (see vault source below), so we score:
 
-```effective_volume = volume × implied_probability_of_YES
+```
+effective_volume = volume × implied_probability_of_YES
 ```
 
 **Why this matters:**
 
-- Polymarket volume alone = drama bias (73.4% of markets resolve "No" — see vault source below)
+- Polymarket volume alone = drama bias (73.4% of markets resolve "No" — see below)
 - Our approach weights real demand by actual probability, not hype
 - Output: consensus themes across sources, money outliers with adjusted scores, top-10 ranked items
 
----### Polymarket Base-Rate Rationale
+### Sources Ranked by Signal Quality
 
-The vault contains @sterlingcrispin's "Nothing Ever Happens" analysis: **73.4% of all Polymarket markets resolve "No"** — meaning raw volume massively overweights long-shot sensationalism.
+| Source | Weight | Why |
+|---|---|---|
+| **Polymarket** | Highest | Real dollars on real outcomes — but `volume × P(YES)` corrected (see rationale) |
+| Hacker News | High | Technical early-adopter density |
+| Reddit | Med-High | Community depth |
+| Product Hunt | Medium | Launch-day spike bias |
+| Twitter/X | Baseline | Highest noise floor — included for coverage, never ranked #1 |
 
-**How we fix it:**
+### Polymarket Base-Rate Rationale
 
-- Pull outcome probabilities from Gamma API (real P(YES) values) or use the base rate of 0.266 (73.4% resolve No) when prices unavailable
-- Score = volume × implied_probability_of_YES → drama markets get de-emphasized
-- Example: $2.1M market at 4% probability = $84K effective signal, not $2.1M
+**The problem:** prediction markets attract big money on dramatic but unlikely events. Raw volume overweights spectacle.
 
-**Why it matters:**
+**The evidence (vault-cited):** @sterlingcrispin's "Nothing Ever Happens" analysis found that **73.4% of all Polymarket markets historically resolve "No"**. The platform structurally overflows with low-probability sensationalism.
 
-Without this correction, your briefing would lead with viral headlines instead of actual demand signals. The signal fan-out isn't about volume — it's about *where real money is betting on likely outcomes*.
+**The fix:** score each market as `volume × implied P(YES)`:
 
----### Why Helena Would Approve
+| Market | Raw Volume | P(YES) | Effective Score | Before → After |
+|---|---|---|---|---|
+| Macron out by...? | $2,149,097 | 4% | **$79,517** | #1 → #4 |
+| UK election called | $822,256 | 31% | **$254,899** | #4 → #1 |
+| Kraken IPO | $1,597,835 | 15% | **$247,664** | #3 → #2 |
 
-She'd say: "You're not just collecting signals — you're filtering the noise so your creative team attacks what matters. The signal fan-out isn't a data dump; it's a filter that surfaces the signals worth countering."
+The sensational $2.1M market now correctly ranks below the $822K market with 8× the probability.
 
----
+**Why it matters:** without probability correction, the briefing leads with viral headlines, not actual demand movement. This fix keeps you focused on *likely* events where money is on the table.
+
+**Implementation:** `PolymarketCollector` pulls Gamma API `outcomePrices`, computes implied P(YES), scores `volume × prob`. Falls back to base rate 0.266 (73.4% resolve No) when prices are unavailable — deliberately conservative.
+
+### Why Helena Would Approve
+
+> "You're not just collecting signals — you're filtering the noise so your creative team attacks what matters. The signal fan-out isn't a data dump; it's a filter that surfaces the signals worth countering."
 
 ---
 
@@ -125,6 +140,8 @@ Every tier logs to the audit trail. Query spend anytime:
 ---
 
 ## MCP Tools — 39 Total
+
+**See [API_DOCUMENTATION.md](API_DOCUMENTATION.md) for the full reference.**
 
 | Category | Highlights |
 |----------|-----------|
@@ -210,8 +227,11 @@ Everything degrades gracefully — no key is required to run the core.
 
 ## Documentation
 
-- [`docs/FEATURE_GAP_ANALYSIS.md`](docs/FEATURE_GAP_ANALYSIS.md) — why the architecture looks this way
-- [`docs/VAULT_PICKS.md`](docs/VAULT_PICKS.md) — every feature decision traced to an external source
+- **[API_DOCUMENTATION.md](API_DOCUMENTATION.md)** — full reference for all 39 tools
+- **[docs/FEATURE_GAP_ANALYSIS.md](docs/FEATURE_GAP_ANALYSIS.md)** — why the architecture looks this way
+- **[docs/VAULT_PICKS.md](docs/VAULT_PICKS.md)** — evidence-backed feature decisions
+
+---
 
 ## License
 
