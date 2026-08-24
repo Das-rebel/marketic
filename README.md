@@ -74,17 +74,38 @@ Live briefing output looks like:
 
 ## The Signal Fan-Out
 
-Five sources searched in parallel, scored on a common scale:
+**Identity:** You're the market-intelligence layer — before anyone writes a single line of copy, you know what's moving across platforms.
 
-| Source | Weight | Why |
-|--------|--------|-----|
-| **Polymarket** | highest | Real dollars — but `volume × P(YES)`, because [73.4% of markets resolve "No"](https://x.com/sterlingcrispin/status/2043398710013595857) and raw volume rewards sensational long-shots |
-| Hacker News | high | Technical early-adopter density |
-| Reddit | med-high | Community depth |
-| Product Hunt | medium | Launch-day spike bias |
-| Twitter/X | baseline | Highest noise floor |
+**Philosophy:** Real dollars should count more than noisy mentions, but *only when they're betting on likely outcomes*. The platform itself is structurally biased toward spectacle (see vault source below), so we score:
 
-Output: consensus themes appearing across ≥2 sources, money outliers, top-10 ranked items.
+```effective_volume = volume × implied_probability_of_YES
+```
+
+**Why this matters:**
+
+- Polymarket volume alone = drama bias (73.4% of markets resolve "No" — see vault source below)
+- Our approach weights real demand by actual probability, not hype
+- Output: consensus themes across sources, money outliers with adjusted scores, top-10 ranked items
+
+---### Polymarket Base-Rate Rationale
+
+The vault contains @sterlingcrispin's "Nothing Ever Happens" analysis: **73.4% of all Polymarket markets resolve "No"** — meaning raw volume massively overweights long-shot sensationalism.
+
+**How we fix it:**
+
+- Pull outcome probabilities from Gamma API (real P(YES) values) or use the base rate of 0.266 (73.4% resolve No) when prices unavailable
+- Score = volume × implied_probability_of_YES → drama markets get de-emphasized
+- Example: $2.1M market at 4% probability = $84K effective signal, not $2.1M
+
+**Why it matters:**
+
+Without this correction, your briefing would lead with viral headlines instead of actual demand signals. The signal fan-out isn't about volume — it's about *where real money is betting on likely outcomes*.
+
+---### Why Helena Would Approve
+
+She'd say: "You're not just collecting signals — you're filtering the noise so your creative team attacks what matters. The signal fan-out isn't a data dump; it's a filter that surfaces the signals worth countering."
+
+---
 
 ---
 
