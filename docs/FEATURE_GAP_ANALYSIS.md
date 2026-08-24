@@ -1,159 +1,76 @@
-# Marketic vs Helena — Feature Gap Analysis
+# Marketic vs Helena — Architecture Analysis (v2)
 
-## Overview
-
-**Helena** (Bukito Setup) = Brand voice specialist + Creative execution pipeline  
-**Marketic** = Strategic marketing intelligence + Orchestration layer
+> **Revision note:** v1 of this doc proposed cloning Helena's features (design
+> templates, UGC curator, publisher). That was wrong. This version corrects the thesis.
 
 ---
 
-## Feature Comparison Matrix
+## The Wrong Lesson vs The Right Lesson
 
-| Category | Feature | Helena | Marketic | Gap |
-|----------|---------|--------|----------|-----|
-| **Strategy** | Content calendar planning | ✅ | ❌ | **GAP** |
-| | Campaign planning | ✅ | ✅ | — |
-| | Social strategy | ✅ | ❌ | **GAP** |
-| | Competitive analysis | ❌ | ✅ | Helena missing |
-| | Positioning maps | ❌ | ✅ | Helena missing |
-| **Creative** | Ad copy generation | ❌ | ✅ | — |
-| | Social post generation | ✅ | ✅ | — |
-| | SEO content | Partial | ✅ | — |
-| | Static posts (design) | ✅ (Paper MCP) | ❌ | **GAP** |
-| | Animated video | ✅ (Remotion) | ❌ | **GAP** |
-| | AI video from photos | ✅ (Runway) | ❌ | **GAP** |
-| **Brand** | Brand voice/personality | ✅ | ❌ | **GAP** |
-| | Color palette rules | ✅ | ❌ | **GAP** |
-| | Typography rules | ✅ | ❌ | **GAP** |
-| | Logo/asset management | ✅ | ❌ | **GAP** |
-| **Distribution** | Scheduling via Postiz | ✅ | ❌ | **GAP** |
-| | Multi-platform posting | ✅ (Postiz) | ❌ | **GAP** |
-| | UGC curation | ✅ | ❌ | **GAP** |
-| | Hashtag monitoring | ✅ | ❌ | **GAP** |
-| **Intelligence** | Engagement analytics | ✅ | ❌ | **GAP** |
-| | Signal collection | ❌ | ✅ | Helena missing |
-| | Competitive intel | ❌ | ✅ | Helena missing |
-| | Attribution modeling | ❌ | ✅ | Helena missing |
-| **Execution** | Hub integrations | ❌ | ✅ | — |
-| | CRM (leads/deals) | ❌ | ✅ | — |
-| | Budget optimization | ❌ | ✅ | — |
-| **AI** | Ensemble voting | ❌ | ✅ | Helena missing |
-| | Full audit trail | ❌ | ✅ | Helena missing |
-| | Multi-model routing | ❌ | ✅ | Helena missing |
+### ❌ What we initially did (wrong)
+Copied Helena's *features*: hardcoded her brand's hex codes into "default templates,"
+wrote a Postiz clone, built UGC flows with Bukito-specific copy. Result: a
+general-purpose OS full of one restaurant's branding.
+
+### ✅ What Helena actually teaches (right)
+Helena's innovation is **architectural**, not functional:
+
+| Pattern | Helena's implementation | Marketic adoption |
+|---------|------------------------|-------------------|
+| **Brand-as-data** | `bukito-brand` skill = colors/fonts/tone as config | `BrandTokens` + `brand_memory` — templates render against tokens |
+| **Versioned brain** | `brain/helena.md` in git; learnings merged via PR | Audit trail already logs decisions; add brain files for durable strategy learnings |
+| **Skills with triggers** | SKILL.md frontmatter declares when to activate | MCP tools already self-describe; add trigger metadata to tool descriptions |
+| **Thin integrations** | Paper/Runway/Postiz used *as-is*, not reimplemented | Orchestrate existing MCP servers; write adapters only where none exist |
 
 ---
 
-## What's Unique to Marketic (Helena Missing)
+## Corrected Positioning
 
-| Feature | Description |
-|---------|-------------|
-| **Ensemble AI Voting** | Multi-model confidence-weighted decision making |
-| **Full Audit Trail** | Every AI decision logged with reasoning chain |
-| **Competitive Intelligence** | Deep analysis, positioning maps, SWOT |
-| **Attribution Modeling** | 5 models: first-touch, last-touch, linear, time-decay, position-based |
-| **Signal Collection** | Product Hunt, HN, Twitter, Reddit intelligence |
-| **Hub Orchestration** | Unified API for 8+ marketing platforms |
-| **CRM** | Complete lead/deal/activity management |
-| **Budget Router** | ROAS-based budget rebalancing |
-
----
-
-## What's Unique to Helena (Marketic Missing)
-
-| Feature | Description | Priority |
-|---------|-------------|----------|
-| **Brand Voice System** | Personality, tone, language rules | HIGH |
-| **Design Templates** | Static post layouts (Paper MCP) | HIGH |
-| **Video Generation** | Remotion + Runway AI video | HIGH |
-| **Publishing Pipeline** | Postiz integration for scheduling | HIGH |
-| **Content Calendar** | Planning + scheduling workflow | HIGH |
-| **UGC Curation** | Hashtag monitoring, permission workflow | MEDIUM |
-| **Asset Management** | Photo library, Supabase storage | MEDIUM |
-| **Engagement Analytics** | Platform-native metrics | MEDIUM |
-
----
-
-## Recommended Additions to Marketic
-
-### HIGH Priority
-
-1. **Brand Voice Module** (`memory/voice_profile.py`)
-   - Already exists: `voice_profile.py` — needs integration
-   - Brand personality, tone rules, language patterns
-
-2. **Design Template System** (new: `creative/design_templates.py`)
-   - Static post layouts (Instagram, Twitter, Facebook)
-   - Paper MCP integration
-   - Platform-specific dimensions
-
-3. **Publishing Pipeline** (new: `execution/publisher.py`)
-   - Postiz API integration
-   - Multi-platform scheduling
-   - Content calendar management
-
-4. **UGC Curation** (new: `creative/ugc_collector.py`)
-   - Hashtag monitoring
-   - Permission request templates
-   - Repost workflow
-
-### MEDIUM Priority
-
-5. **Video Generation** (new: `creative/video_generator.py`)
-   - Runway API integration
-   - Remotion template system
-   - AI clip generation from photos
-
-6. **Asset Management** (new: `memory/asset_manager.py`)
-   - Photo/video library
-   - Supabase storage integration
-   - Brand asset versioning
-
-7. **Engagement Analytics** (extend: `analytics/engagement.py`)
-   - Platform-native metrics
-   - Cross-platform dashboard
-   - Performance trends
-
----
-
-## Architecture Comparison
-
-### Helena: Agent + Skills Pattern
 ```
-Helena (agent)
-├── bukito-brand (skill) — brand rules
-├── bukito-content (skill) — creative generation
-└── bukito-ugc (skill) — UGC curation
-    ├── Paper MCP — design canvas
-    ├── Runway API — AI video
-    ├── Remotion — animated video
-    └── Postiz — scheduling
+┌─────────────────────────────────────────────────┐
+│  Marketic = Strategy Brain (white-label)        │
+│  competitive intel · positioning · ensemble AI  │
+│  attribution · budgets · audit trail · CRM      │
+└───────────────────┬─────────────────────────────┘
+                    │ hands off briefs + brand kit
+┌───────────────────▼─────────────────────────────┐
+│  Execution Agents (per-brand, e.g. "Helena")    │
+│  voice · calendar · creative · publishing       │
+│  powered by: Paper MCP · Runway · Postiz        │
+└─────────────────────────────────────────────────┘
 ```
 
-### Marketic: Module Layer Pattern
-```
-Marketic (MCP server)
-├── ensemble/ — AI voting + audit
-├── creative/ — copy generation
-├── campaign/ — strategy + budgets
-├── gtm/ — competitive intel
-├── signals/ — market signals
-├── analytics/ — attribution
-├── integrations/ — platform hub
-└── crm/ — lead/deal management
-```
+**Marketic does not need to be Helena.** Marketic produces the *brief* (positioning,
+copy variants, budget, hashtags, optimal times) + the *brand kit* (tokens).
+A brand agent — Helena-style, one per brand — executes it with design/publishing tools.
+
+## What Changed in the Code
+
+1. **`execution/design_templates.py` rewritten as token-driven**
+   - New `BrandTokens` dataclass: entire visual identity as configuration
+   - All 8 templates now reference `{{brand.primary}}`, `{{brand.font}}`, etc.
+   - Zero hardcoded brand values. Verified: same template renders Bukito (#6D0000)
+     and a fictional Acme (#00AAFF) correctly.
+   - `TemplateLibrary(BrandTokens.from_brand_memory(record))` loads any brand
+
+2. **UGC curator & publisher kept but de-scoped**
+   - They orchestrate; they don't replace Postiz/platform APIs
+   - Direct-publish paths are explicit fallbacks, not primary paths
+
+3. **What we will NOT build**
+   - ❌ Video generation (Runway already exists as API/MCP)
+   - ❌ Design canvas (Paper MCP already exists)
+   - ❌ Scheduling backend (Postiz already exists)
+   - ❌ Per-brand logic anywhere in `marketic/*`
+
+## Remaining Genuine Gaps (small now)
+
+| Gap | Fix | Effort |
+|-----|-----|--------|
+| Brain files not git-versioned per brand | Add `brain/<brand>.md` convention + PR workflow doc | Low |
+| No handoff artifact (brief → agent) | `generate_brief` MCP tool: outputs JSON brief + resolved brand kit | Medium |
+| Tool descriptions lack trigger phrases | Add "use when..." lines to MCP tool descriptions | Low |
 
 ---
 
-## Conclusion
-
-**Marketic** is a **strategic intelligence layer** — it excels at analysis, planning, and orchestration across multiple channels and platforms.
-
-**Helena** is a **brand-embedded execution agent** — it deeply understands the brand voice and owns the creative-to-publishing pipeline.
-
-**The gap is execution, not strategy.**
-
-Marketic needs a **content execution layer** to go from "generate campaign" to "publish and measure."
-
----
-
-*Generated: 2026-08-24*
+*Revised: 2026-08-24 — supersedes v1 feature-parity framing.*

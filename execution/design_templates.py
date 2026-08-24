@@ -16,6 +16,49 @@ class Platform(str, Enum):
     TIKTOK = "tiktok"
 
 
+@dataclass
+class BrandTokens:
+    """
+    Brand-as-data: the entire visual identity as configuration, not code.
+    Templates reference tokens ({{brand.primary}}); any brand renders correctly.
+    Load from brand_memory or a brand kit file — never hardcode in templates.
+    """
+    name: str = "Brand"
+    tagline: str = ""
+    handle: str = "@brand"
+    primary_color: str = "#1A1A1A"      # {{brand.primary}}
+    background_color: str = "#FFFFFF"   # {{brand.background}}
+    accent_color: str = "#FF6600"       # {{brand.accent}}
+    secondary_color: str = "#008000"    # {{brand.secondary}}
+    font_primary: str = "Helvetica"     # {{brand.font}}
+
+    def to_substitution_map(self) -> Dict[str, str]:
+        return {
+            "{{brand.primary}}": self.primary_color,
+            "{{brand.background}}": self.background_color,
+            "{{brand.accent}}": self.accent_color,
+            "{{brand.secondary}}": self.secondary_color,
+            "{{brand.font}}": self.font_primary,
+            "{{brand.handle}}": self.handle,
+            "{{brand.name}}": self.name.upper(),
+            "{{brand.tagline}}": self.tagline.upper(),
+        }
+
+    @classmethod
+    def from_brand_memory(cls, brand_record: Dict[str, Any]) -> "BrandTokens":
+        """Load tokens from the brand_memory store."""
+        return cls(
+            name=brand_record.get("name", "Brand"),
+            tagline=brand_record.get("tagline", ""),
+            handle=brand_record.get("handle", "@brand"),
+            primary_color=brand_record.get("primary_color", "#1A1A1A"),
+            background_color=brand_record.get("background_color", "#FFFFFF"),
+            accent_color=brand_record.get("accent_color", "#FF6600"),
+            secondary_color=brand_record.get("secondary_color", "#008000"),
+            font_primary=brand_record.get("font_primary", "Helvetica"),
+        )
+
+
 class TemplateType(str, Enum):
     STATIC_POST = "static_post"
     STORY = "story"
@@ -83,9 +126,10 @@ PLATFORM_DIMENSIONS = {
 
 
 class TemplateLibrary:
-    """Pre-built design templates for marketing content."""
+    """Brand-agnostic design templates. Render against BrandTokens."""
 
-    def __init__(self):
+    def __init__(self, tokens: Optional[BrandTokens] = None):
+        self.tokens = tokens or BrandTokens()
         self.templates: Dict[str, DesignTemplate] = {}
         self._load_default_templates()
 
@@ -107,54 +151,54 @@ class TemplateLibrary:
                 ),
                 TemplateLayer(
                     layer_type="gradient",
-                    content="linear-gradient(transparent, #F8F5EA)",
+                    content="linear-gradient(transparent, {{brand.background}})",
                     position={"x": 0, "y": 540, "width": 1080, "height": 540},
                 ),
                 TemplateLayer(
                     layer_type="text",
                     content="[LABEL]",
-                    font="Kisrre",
+                    font="{{brand.font}}",
                     font_size=11,
-                    color="#E67E32",
+                    color="{{brand.accent}}",
                     tracking=0.15,
                     position={"x": 40, "y": 700},
                 ),
                 TemplateLayer(
                     layer_type="text",
                     content="[TITLE]",
-                    font="Kisrre",
+                    font="{{brand.font}}",
                     font_size=56,
-                    color="#6D0000",
+                    color="{{brand.primary}}",
                     tracking=-0.05,
                     position={"x": 40, "y": 750},
                 ),
                 TemplateLayer(
                     layer_type="text",
                     content="[DESCRIPTION]",
-                    font="Kisrre",
+                    font="{{brand.font}}",
                     font_size=16,
-                    color="#6D0000",
+                    color="{{brand.primary}}",
                     opacity=0.6,
                     position={"x": 40, "y": 830},
                 ),
                 TemplateLayer(
                     layer_type="text",
-                    content="BUKITO",
-                    font="Kisrre",
+                    content="[BRAND_NAME]",
+                    font="{{brand.font}}",
                     font_size=14,
-                    color="#6D0000",
+                    color="{{brand.primary}}",
                     position={"x": 40, "y": 1000},
                 ),
                 TemplateLayer(
                     layer_type="text",
-                    content="@BUKITO.SUMBAWA",
-                    font="Kisrre",
+                    content="{{brand.handle}}",
+                    font="{{brand.font}}",
                     font_size=14,
-                    color="#6D0000",
+                    color="{{brand.primary}}",
                     position={"x": 860, "y": 1000},
                 ),
             ],
-            background_color="#F8F5EA",
+            background_color="{{brand.background}}",
         )
 
         # Vibe Post — Instagram Post
@@ -182,26 +226,26 @@ class TemplateLibrary:
                 TemplateLayer(
                     layer_type="text",
                     content="[LABEL]",
-                    font="Kisrre",
+                    font="{{brand.font}}",
                     font_size=11,
-                    color="#E67E32",
+                    color="{{brand.accent}}",
                     tracking=0.15,
                     position={"x": 40, "y": 650},
                 ),
                 TemplateLayer(
                     layer_type="text",
                     content="[HEADLINE]",
-                    font="Kisrre",
+                    font="{{brand.font}}",
                     font_size=64,
-                    color="#F8F5EA",
+                    color="{{brand.background}}",
                     position={"x": 40, "y": 720},
                 ),
                 TemplateLayer(
                     layer_type="text",
                     content="[SUBTEXT]",
-                    font="Kisrre",
+                    font="{{brand.font}}",
                     font_size=14,
-                    color="#F8F5EA",
+                    color="{{brand.background}}",
                     opacity=0.6,
                     position={"x": 40, "y": 830},
                 ),
@@ -218,68 +262,68 @@ class TemplateLibrary:
             layers=[
                 TemplateLayer(
                     layer_type="background",
-                    content="#F8F5EA",
+                    content="{{brand.background}}",
                 ),
                 TemplateLayer(
                     layer_type="text",
                     content="[DATE]",
-                    font="Kisrre",
+                    font="{{brand.font}}",
                     font_size=14,
-                    color="#E67E32",
+                    color="{{brand.accent}}",
                     position={"x": 40, "y": 100},
                 ),
                 TemplateLayer(
                     layer_type="text",
                     content="[TIME]",
-                    font="Kisrre",
+                    font="{{brand.font}}",
                     font_size=14,
-                    color="#6D0000",
+                    color="{{brand.primary}}",
                     position={"x": 800, "y": 100},
                 ),
                 TemplateLayer(
                     layer_type="text",
                     content="[EVENT NAME]",
-                    font="Kisrre",
+                    font="{{brand.font}}",
                     font_size=96,
-                    color="#6D0000",
+                    color="{{brand.primary}}",
                     line_height=0.9,
                     position={"x": 40, "y": 200},
                 ),
                 TemplateLayer(
                     layer_type="text",
                     content="[DESCRIPTION]",
-                    font="Kisrre",
+                    font="{{brand.font}}",
                     font_size=16,
-                    color="#6D0000",
+                    color="{{brand.primary}}",
                     opacity=0.6,
                     position={"x": 40, "y": 700},
                 ),
                 TemplateLayer(
                     layer_type="text",
                     content="[PRICE]",
-                    font="Kisrre",
+                    font="{{brand.font}}",
                     font_size=14,
-                    color="#008134",
+                    color="{{brand.secondary}}",
                     position={"x": 40, "y": 800},
                 ),
                 TemplateLayer(
                     layer_type="text",
-                    content="BUKITO",
-                    font="Kisrre",
+                    content="[BRAND_NAME]",
+                    font="{{brand.font}}",
                     font_size=14,
-                    color="#6D0000",
+                    color="{{brand.primary}}",
                     position={"x": 40, "y": 950},
                 ),
                 TemplateLayer(
                     layer_type="text",
-                    content="PARADISE WITH FANGS",
-                    font="Kisrre",
+                    content="[TAGLINE]",
+                    font="{{brand.font}}",
                     font_size=14,
-                    color="#6D0000",
+                    color="{{brand.primary}}",
                     position={"x": 800, "y": 950},
                 ),
             ],
-            background_color="#F8F5EA",
+            background_color="{{brand.background}}",
         )
 
         # Story — Weekly Special
@@ -307,39 +351,39 @@ class TemplateLibrary:
                 TemplateLayer(
                     layer_type="text",
                     content="[LABEL]",
-                    font="Kisrre",
+                    font="{{brand.font}}",
                     font_size=12,
-                    color="#E67E32",
+                    color="{{brand.accent}}",
                     position={"x": 0, "y": 1300, "width": 1080, "align": "center"},
                 ),
                 TemplateLayer(
                     layer_type="text",
                     content="[TITLE]",
-                    font="Kisrre",
+                    font="{{brand.font}}",
                     font_size=72,
-                    color="#F8F5EA",
+                    color="{{brand.background}}",
                     position={"x": 0, "y": 1400, "width": 1080, "align": "center"},
                 ),
                 TemplateLayer(
                     layer_type="divider",
-                    content="#E67E32",
+                    content="{{brand.accent}}",
                     position={"x": 490, "y": 1520, "width": 60, "height": 2},
                 ),
                 TemplateLayer(
                     layer_type="text",
                     content="[DESCRIPTION]",
-                    font="Kisrre",
+                    font="{{brand.font}}",
                     font_size=16,
-                    color="#F8F5EA",
+                    color="{{brand.background}}",
                     opacity=0.7,
                     position={"x": 0, "y": 1580, "width": 1080, "align": "center"},
                 ),
                 TemplateLayer(
                     layer_type="text",
                     content="[PRICE]",
-                    font="Kisrre",
+                    font="{{brand.font}}",
                     font_size=28,
-                    color="#E67E32",
+                    color="{{brand.accent}}",
                     position={"x": 0, "y": 1700, "width": 1080, "align": "center"},
                 ),
             ],
@@ -355,7 +399,7 @@ class TemplateLibrary:
             layers=[
                 TemplateLayer(
                     layer_type="background",
-                    content="#F8F5EA",
+                    content="{{brand.background}}",
                 ),
                 TemplateLayer(
                     layer_type="image",
@@ -364,45 +408,45 @@ class TemplateLibrary:
                 ),
                 TemplateLayer(
                     layer_type="gradient",
-                    content="linear-gradient(transparent, #F8F5EA)",
+                    content="linear-gradient(transparent, {{brand.background}})",
                     position={"x": 0, "y": 680, "width": 1080, "height": 400},
                 ),
                 TemplateLayer(
                     layer_type="text",
                     content="SHARED BY @[USERNAME]",
-                    font="Kisrre",
+                    font="{{brand.font}}",
                     font_size=11,
-                    color="#E67E32",
+                    color="{{brand.accent}}",
                     tracking=0.15,
                     position={"x": 40, "y": 820},
                 ),
                 TemplateLayer(
                     layer_type="text",
                     content="[CAPTION]",
-                    font="Kisrre",
+                    font="{{brand.font}}",
                     font_size=14,
-                    color="#6D0000",
+                    color="{{brand.primary}}",
                     opacity=0.6,
                     position={"x": 40, "y": 870},
                 ),
                 TemplateLayer(
                     layer_type="text",
-                    content="BUKITO",
-                    font="Kisrre",
+                    content="[BRAND_NAME]",
+                    font="{{brand.font}}",
                     font_size=11,
-                    color="#6D0000",
+                    color="{{brand.primary}}",
                     position={"x": 40, "y": 1000},
                 ),
                 TemplateLayer(
                     layer_type="text",
                     content="#PARADISEWITHFANGS",
-                    font="Kisrre",
+                    font="{{brand.font}}",
                     font_size=11,
-                    color="#6D0000",
+                    color="{{brand.primary}}",
                     position={"x": 760, "y": 1000},
                 ),
             ],
-            background_color="#F8F5EA",
+            background_color="{{brand.background}}",
         )
 
         # Twitter Post
@@ -415,35 +459,35 @@ class TemplateLibrary:
             layers=[
                 TemplateLayer(
                     layer_type="background",
-                    content="#F8F5EA",
+                    content="{{brand.background}}",
                 ),
                 TemplateLayer(
                     layer_type="text",
                     content="[HEADLINE]",
-                    font="Kisrre",
+                    font="{{brand.font}}",
                     font_size=32,
-                    color="#6D0000",
+                    color="{{brand.primary}}",
                     position={"x": 60, "y": 200},
                 ),
                 TemplateLayer(
                     layer_type="text",
                     content="[BODY]",
-                    font="Kisrre",
+                    font="{{brand.font}}",
                     font_size=18,
-                    color="#6D0000",
+                    color="{{brand.primary}}",
                     opacity=0.8,
                     position={"x": 60, "y": 320},
                 ),
                 TemplateLayer(
                     layer_type="text",
                     content="[CTA]",
-                    font="Kisrre",
+                    font="{{brand.font}}",
                     font_size=16,
-                    color="#E67E32",
+                    color="{{brand.accent}}",
                     position={"x": 60, "y": 480},
                 ),
             ],
-            background_color="#F8F5EA",
+            background_color="{{brand.background}}",
         )
 
         # LinkedIn Post
@@ -456,7 +500,7 @@ class TemplateLibrary:
             layers=[
                 TemplateLayer(
                     layer_type="background",
-                    content="#F8F5EA",
+                    content="{{brand.background}}",
                 ),
                 TemplateLayer(
                     layer_type="text",
@@ -466,30 +510,30 @@ class TemplateLibrary:
                 TemplateLayer(
                     layer_type="text",
                     content="[HEADLINE]",
-                    font="Kisrre",
+                    font="{{brand.font}}",
                     font_size=28,
-                    color="#6D0000",
+                    color="{{brand.primary}}",
                     position={"x": 60, "y": 140},
                 ),
                 TemplateLayer(
                     layer_type="text",
                     content="[BODY]",
-                    font="Kisrre",
+                    font="{{brand.font}}",
                     font_size=16,
-                    color="#6D0000",
+                    color="{{brand.primary}}",
                     opacity=0.85,
                     position={"x": 60, "y": 220},
                 ),
                 TemplateLayer(
                     layer_type="text",
                     content="[HASHTAGS]",
-                    font="Kisrre",
+                    font="{{brand.font}}",
                     font_size=12,
-                    color="#E67E32",
+                    color="{{brand.accent}}",
                     position={"x": 60, "y": 540},
                 ),
             ],
-            background_color="#F8F5EA",
+            background_color="{{brand.background}}",
         )
 
     def get_template(self, template_id: str) -> Optional[DesignTemplate]:
@@ -518,6 +562,15 @@ class TemplateLibrary:
         if not template:
             raise ValueError(f"Template not found: {template_id}")
 
+        # Resolve brand tokens + placeholders
+        substitutions = self.tokens.to_substitution_map()
+        substitutions.update({f"[{k}]": v for k, v in placeholders.items()})
+
+        def resolve(text: str) -> str:
+            for key, value in substitutions.items():
+                text = text.replace(key, value)
+            return text
+
         rendered = {
             "template_id": template.template_id,
             "name": template.name,
@@ -528,18 +581,10 @@ class TemplateLibrary:
         }
 
         for layer in template.layers:
-            content = layer.content
-
-            # Replace placeholders
-            for key, value in placeholders.items():
-                placeholder = f"[{key}]"
-                if placeholder in content:
-                    content = content.replace(placeholder, value)
+            content = resolve(layer.content)
 
             # Handle photo placeholder
-            if content == "[PHOTO]" and photo_path:
-                content = photo_path
-            elif content == "[CUSTOMER_PHOTO]" and photo_path:
+            if content in ("[PHOTO]", "[CUSTOMER_PHOTO]") and photo_path:
                 content = photo_path
 
             rendered_layer = {
@@ -548,11 +593,11 @@ class TemplateLibrary:
             }
 
             if layer.font:
-                rendered_layer["font"] = layer.font
+                rendered_layer["font"] = resolve(layer.font)
             if layer.font_size:
                 rendered_layer["font_size"] = layer.font_size
             if layer.color:
-                rendered_layer["color"] = layer.color
+                rendered_layer["color"] = resolve(layer.color)
             if layer.position:
                 rendered_layer["position"] = layer.position
             if layer.opacity is not None:
@@ -647,7 +692,7 @@ class TemplateRenderer:
         ]
 
         dims = rendered["dimensions"]
-        bg = rendered.get("background_color", "#F8F5EA")
+        bg = rendered.get("background_color", "{{brand.background}}")
 
         # Base image creation
         commands.append(f"# Create base image")
