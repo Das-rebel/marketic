@@ -551,19 +551,19 @@ TOOLS = [
 # ─── Tool Handlers ────────────────────────────────────────────
 
 async def handle_analyze_competitor(args):
-    from marketic.gtm.competitive import CompetitiveIntelligence
+    from gtm.competitive import CompetitiveIntelligence
     ci = CompetitiveIntelligence()
     return await ci.analyze_competitor(competitor_name=args["brand"], category=args.get("category", ""))
 
 
 async def handle_compare_competitors(args):
-    from marketic.gtm.competitive import CompetitiveIntelligence
+    from gtm.competitive import CompetitiveIntelligence
     ci = CompetitiveIntelligence()
     return await ci.compare_with_competitors(your_product=args["your_product"], competitors=args["competitors"])
 
 
 async def handle_generate_creatives(args):
-    from marketic.creative.copy_generator import CopyGenerator, AdCopyRequest, AdChannel, AdObjective
+    from creative.copy_generator import CopyGenerator, AdCopyRequest, AdChannel, AdObjective
     gen = CopyGenerator()
     request = AdCopyRequest(
         product_name=args["product_name"],
@@ -580,7 +580,7 @@ async def handle_generate_creatives(args):
 
 
 async def handle_generate_social_posts(args):
-    from marketic.creative.social_generator import SocialGenerator, SocialContentRequest, SocialPlatform, ContentFormat
+    from creative.social_generator import SocialGenerator, SocialContentRequest, SocialPlatform, ContentFormat
     gen = SocialGenerator()
     # Map format string to enum; 'post' -> SINGLE_POST, 'thread' -> THREAD, etc.
     format_str = args.get("format", "post")
@@ -607,7 +607,7 @@ async def handle_generate_social_posts(args):
 
 
 async def handle_generate_seo_content(args):
-    from marketic.creative.seo_generator import SEOGenerator, SEOContentRequest
+    from creative.seo_generator import SEOGenerator, SEOContentRequest
     gen = SEOGenerator()
     keyword = args.get("target_keyword", args.get("keyword", ""))
     request = SEOContentRequest(
@@ -623,7 +623,7 @@ async def handle_generate_seo_content(args):
 
 
 async def handle_build_campaign(args):
-    from marketic.campaign.builder import CampaignBuilder, CampaignObjective
+    from campaign.builder import CampaignBuilder, CampaignObjective
     builder = CampaignBuilder()
     name = args.get("campaign_name", args.get("name", "Untitled Campaign"))
     # Map common objective strings to valid enum values
@@ -665,7 +665,7 @@ async def handle_build_campaign(args):
 
 
 async def handle_optimize_budget(args):
-    from marketic.campaign.budget_router import BudgetRouter
+    from campaign.budget_router import BudgetRouter
     router = BudgetRouter()
     # Build channel_data dict from current_allocation + channel_performance
     current_alloc = args.get("current_allocation", {})
@@ -689,7 +689,7 @@ async def handle_optimize_budget(args):
 
 
 async def handle_analyze_positioning(args):
-    from marketic.gtm.positioning import PositioningAnalyzer
+    from gtm.positioning import PositioningAnalyzer
     analyzer = PositioningAnalyzer()
     brand = args.get("brand", "Unknown")
     product = args.get("product", brand)
@@ -704,7 +704,7 @@ async def handle_analyze_positioning(args):
 
 
 async def handle_collect_signals(args):
-    from marketic.signals.collectors import ProductHuntCollector, TrendsCollector, TwitterCollector, RedditCollector
+    from signals.collectors import ProductHuntCollector, TrendsCollector, TwitterCollector, RedditCollector
     signals = []
     # Map source strings to actual collectors
     source_map = {
@@ -738,7 +738,7 @@ async def handle_collect_signals(args):
 
 
 async def handle_get_attribution(args):
-    from marketic.analytics.attribution import MultiTouchAttribution, AttributionModel, Touchpoint
+    from analytics.attribution import MultiTouchAttribution, AttributionModel, Touchpoint
     import uuid
     mta = MultiTouchAttribution()
     model_map = {"first_touch": AttributionModel.FIRST_TOUCH, "last_touch": AttributionModel.LAST_TOUCH, "linear": AttributionModel.LINEAR, "time_decay": AttributionModel.TIME_DECAY, "position_based": getattr(AttributionModel, "POSITION_BASED", AttributionModel.LINEAR)}
@@ -773,7 +773,7 @@ async def handle_get_attribution(args):
 
 
 async def handle_generate_narrative(args):
-    from marketic.gtm.narrative import NarrativeGenerator
+    from gtm.narrative import NarrativeGenerator
     gen = NarrativeGenerator()
     narrative_type = args.get("narrative_type", "brand_story")
     brand = args.get("brand", "Unknown")
@@ -796,7 +796,7 @@ async def handle_launch_campaign_ad(args):
 
 # Hub handlers
 async def handle_hub_health_check(args):
-    from marketic.integrations.unified_adapter import MarketingHub, create_hub, list_supported_platforms
+    from integrations.unified_adapter import MarketingHub, create_hub, list_supported_platforms
     import os
     platforms = {
         "webengage": {"api_key": os.getenv("WEBENGAGE_API_KEY", ""), "license_code": os.getenv("WEBENGAGE_LICENSE_CODE", "")},
@@ -820,7 +820,7 @@ async def handle_hub_health_check(args):
 
 
 async def handle_hub_broadcast_event(args):
-    from marketic.integrations.unified_adapter import MarketingHub, Event
+    from integrations.unified_adapter import MarketingHub, Event
     import os
     platforms = {
         "webengage": {"api_key": os.getenv("WEBENGAGE_API_KEY", ""), "license_code": os.getenv("WEBENGAGE_LICENSE_CODE", "")},
@@ -843,7 +843,7 @@ async def handle_hub_broadcast_event(args):
 
 
 async def handle_hub_sync_contact(args):
-    from marketic.integrations.unified_adapter import MarketingHub, Contact, ContactStatus
+    from integrations.unified_adapter import MarketingHub, Contact, ContactStatus
     import os
     platforms = {
         "webengage": {"api_key": os.getenv("WEBENGAGE_API_KEY", ""), "license_code": os.getenv("WEBENGAGE_LICENSE_CODE", "")},
@@ -877,7 +877,7 @@ async def handle_hub_sync_contact(args):
 
 
 async def handle_hub_send_campaign(args):
-    from marketic.integrations.unified_adapter import MarketingHub, Campaign, ChannelType, CampaignStatus
+    from integrations.unified_adapter import MarketingHub, Campaign, ChannelType, CampaignStatus
     import os
     platforms = {
         "webengage": {"api_key": os.getenv("WEBENGAGE_API_KEY", ""), "license_code": os.getenv("WEBENGAGE_LICENSE_CODE", "")},
@@ -901,7 +901,7 @@ async def handle_hub_send_campaign(args):
 
 
 async def handle_hub_get_dashboard(args):
-    from marketic.integrations.unified_adapter import MarketingHub
+    from integrations.unified_adapter import MarketingHub
     import os
     platforms = {
         "webengage": {"api_key": os.getenv("WEBENGAGE_API_KEY", ""), "license_code": os.getenv("WEBENGAGE_LICENSE_CODE", "")},
@@ -922,7 +922,7 @@ async def handle_hub_get_dashboard(args):
 
 
 async def handle_hub_search_prospects(args):
-    from marketic.integrations.unified_adapter import ClayAdapter
+    from integrations.unified_adapter import ClayAdapter
     import os
     clay_key = os.getenv("CLAY_API_KEY", "")
     if not clay_key:
@@ -934,7 +934,7 @@ async def handle_hub_search_prospects(args):
 
 
 async def handle_hub_create_segment(args):
-    from marketic.integrations.unified_adapter import MarketingHub, Segment
+    from integrations.unified_adapter import MarketingHub, Segment
     import os
     platforms = {
         "webengage": {"api_key": os.getenv("WEBENGAGE_API_KEY", ""), "license_code": os.getenv("WEBENGAGE_LICENSE_CODE", "")},
@@ -957,7 +957,7 @@ async def handle_hub_create_segment(args):
 
 
 async def handle_hub_send_transactional(args):
-    from marketic.integrations.unified_adapter import MarketingHub, ChannelType
+    from integrations.unified_adapter import MarketingHub, ChannelType
     import os
     platforms = {
         "webengage": {"api_key": os.getenv("WEBENGAGE_API_KEY", ""), "license_code": os.getenv("WEBENGAGE_LICENSE_CODE", "")},
@@ -981,7 +981,7 @@ async def handle_hub_send_transactional(args):
 
 
 async def handle_hub_list_platforms(args):
-    from marketic.integrations.unified_adapter import list_supported_platforms, ADAPTER_REGISTRY
+    from integrations.unified_adapter import list_supported_platforms, ADAPTER_REGISTRY
     platforms = list_supported_platforms()
     details = {}
     for name in platforms:
@@ -993,7 +993,7 @@ async def handle_hub_list_platforms(args):
 
 # CRM handlers
 async def handle_crm_create_lead(args):
-    from marketic.crm import CRMMaster
+    from crm import CRMMaster
     crm = CRMMaster()
     lead = crm.create_lead(email=args["email"], first_name=args.get("first_name", ""), last_name=args.get("last_name", ""), phone=args.get("phone", ""), company=args.get("company", ""), job_title=args.get("job_title", ""), source=args.get("source", "organic"), tags=args.get("tags", []))
     score = crm.score_lead(lead.lead_id)
@@ -1001,7 +1001,7 @@ async def handle_crm_create_lead(args):
 
 
 async def handle_crm_create_deal(args):
-    from marketic.crm import CRMMaster, DealStage
+    from crm import CRMMaster, DealStage
     crm = CRMMaster()
     stage_map = {"lead": DealStage.LEAD, "qualified": DealStage.QUALIFIED, "proposal": DealStage.PROPOSAL, "negotiation": DealStage.NEGOTIATION, "closed_won": DealStage.CLOSED_WON, "closed_lost": DealStage.CLOSED_LOST}
     deal = crm.create_deal(name=args["name"], value=args.get("value", 0), stage=stage_map.get(args.get("stage", "lead"), DealStage.LEAD), lead_id=args.get("lead_id", "") or None, owner_id=args.get("owner_id", ""))
@@ -1009,7 +1009,7 @@ async def handle_crm_create_deal(args):
 
 
 async def handle_crm_move_deal(args):
-    from marketic.crm import CRMMaster, DealStage
+    from crm import CRMMaster, DealStage
     crm = CRMMaster()
     stage_map = {"lead": DealStage.LEAD, "qualified": DealStage.QUALIFIED, "proposal": DealStage.PROPOSAL, "negotiation": DealStage.NEGOTIATION, "closed_won": DealStage.CLOSED_WON, "closed_lost": DealStage.CLOSED_LOST}
     new_stage = stage_map.get(args["new_stage"])
@@ -1022,7 +1022,7 @@ async def handle_crm_move_deal(args):
 
 
 async def handle_crm_log_activity(args):
-    from marketic.crm import CRMMaster, ActivityType
+    from crm import CRMMaster, ActivityType
     crm = CRMMaster()
     type_map = {"call": ActivityType.CALL, "email": ActivityType.EMAIL, "meeting": ActivityType.MEETING, "note": ActivityType.NOTE, "task": ActivityType.TASK, "campaign": ActivityType.CAMPAIGN}
     activity_type = type_map.get(args["activity_type"], ActivityType.NOTE)
@@ -1031,26 +1031,26 @@ async def handle_crm_log_activity(args):
 
 
 async def handle_crm_get_dashboard(args):
-    from marketic.crm import CRMMaster
+    from crm import CRMMaster
     crm = CRMMaster()
     return crm.get_crm_dashboard()
 
 
 async def handle_crm_search_leads(args):
-    from marketic.crm import CRMMaster
+    from crm import CRMMaster
     crm = CRMMaster()
     leads = crm.search_leads(args["query"], limit=args.get("limit", 10))
     return {"query": args["query"], "leads": [{"lead_id": l.lead_id, "email": l.email, "name": l.full_name, "company": l.company, "score": l.score} for l in leads], "count": len(leads)}
 
 
 async def handle_crm_get_pipeline(args):
-    from marketic.crm import CRMMaster
+    from crm import CRMMaster
     crm = CRMMaster()
     return crm.get_pipeline_summary()
 
 
 async def handle_crm_get_timeline(args):
-    from marketic.crm import CRMMaster
+    from crm import CRMMaster
     crm = CRMMaster()
     timeline = crm.get_timeline(args["entity_id"])
     return {"entity_id": args["entity_id"], "events": timeline, "count": len(timeline)}
@@ -1058,7 +1058,7 @@ async def handle_crm_get_timeline(args):
 
 # UTM & Workflow handlers
 async def handle_build_utm_url(args):
-    from marketic.integrations.unified_adapter import build_utm_url
+    from integrations.unified_adapter import build_utm_url
     url = build_utm_url(
         base_url=args["base_url"],
         source=args["source"],
@@ -1071,12 +1071,12 @@ async def handle_build_utm_url(args):
 
 
 async def handle_parse_utm_params(args):
-    from marketic.integrations.unified_adapter import parse_utm_params
+    from integrations.unified_adapter import parse_utm_params
     return {"utm_params": parse_utm_params(args["url"])}
 
 
 async def handle_run_workflow(args):
-    from marketic.integrations.unified_adapter import MarketingHub, MarketingWorkflow
+    from integrations.unified_adapter import MarketingHub, MarketingWorkflow
     import os
     
     wf = MarketingWorkflow(
@@ -1127,7 +1127,7 @@ async def handle_run_workflow(args):
 
 # Ensemble & Audit handlers
 async def handle_ensemble_vote(args):
-    from marketic.ensemble.voting import EnsembleVoter
+    from ensemble.voting import EnsembleVoter
     voter = EnsembleVoter()
     vote = voter.vote(
         task_type=args["task_type"],
@@ -1146,7 +1146,7 @@ async def handle_ensemble_vote(args):
 
 
 async def handle_audit_log(args):
-    from marketic.ensemble.audit_trail import AuditLogger
+    from ensemble.audit_trail import AuditLogger
     logger = AuditLogger()
     audit_id = logger.log_action(
         action=args["action"],
@@ -1165,7 +1165,7 @@ async def handle_audit_log(args):
 
 
 async def handle_audit_get_log(args):
-    from marketic.ensemble.audit_trail import AuditLogger
+    from ensemble.audit_trail import AuditLogger
     logger = AuditLogger()
     entries = logger.get_audit_log(
         brand_id=args.get("brand_id", "") or None,
@@ -1194,7 +1194,7 @@ async def handle_audit_get_log(args):
 
 
 async def handle_audit_get_cost_summary(args):
-    from marketic.ensemble.audit_trail import AuditLogger
+    from ensemble.audit_trail import AuditLogger
     logger = AuditLogger()
     summary = logger.get_cost_summary(
         brand_id=args.get("brand_id", "") or None,
@@ -1206,7 +1206,7 @@ async def handle_audit_get_cost_summary(args):
 
 # Brief & Signal handlers
 async def handle_generate_brief(args):
-    from marketic.execution.brief import generate_brief
+    from execution.brief import generate_brief
     return generate_brief(
         campaign_name=args["campaign_name"],
         objective=args["objective"],
@@ -1225,7 +1225,7 @@ async def handle_generate_brief(args):
 
 
 async def handle_signal_fanout(args):
-    from marketic.signals.collectors import SignalFanout
+    from signals.collectors import SignalFanout
     fanout = SignalFanout()
     return await fanout.run(
         query=args.get("query", ""),
@@ -1238,7 +1238,7 @@ async def handle_analyze_competitor_ad(args):
     try:
         from gtm.ad_analysis import AdAnalyzer
     except ImportError:
-        from marketic.gtm.ad_analysis import AdAnalyzer
+        from gtm.ad_analysis import AdAnalyzer
     analyzer = AdAnalyzer()
 
     def _ser(b):

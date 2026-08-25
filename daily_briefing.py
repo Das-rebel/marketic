@@ -25,7 +25,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 try:
     from signals.collectors import SignalFanout
 except ImportError:
-    from marketic.signals.collectors import SignalFanout
+    from signals.collectors import SignalFanout
 
 
 def build_briefing(query: str = "", sources: list = None) -> str:

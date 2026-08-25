@@ -59,7 +59,12 @@ cd marketic && pip install -e .
 python3 daily_briefing.py "ai agents"
 ```
 
-### First Output
+### First Output (live)
+
+![Marketic daily briefing — real terminal output](docs/demo_terminal.png)
+
+<details>
+<summary>As text</summary>
 
 ```
 # ☀️ Marketic Daily Briefing
@@ -76,6 +81,7 @@ python3 daily_briefing.py "ai agents"
 - Leads: 0 (avg score 0)
 - Open deals: 0 worth $0
 ```
+</details>
 
 ---
 

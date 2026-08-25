@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "marketic"
+version = "2.0.0"
+description = "White-label marketing strategy brain — ensemble AI, calibrated signals, margin-aware budgets, self-contained briefs"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [{ name = "Subho Das" }]
+keywords = ["marketing", "mcp", "ai-agents", "ensemble-ai", "competitive-intelligence"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+dependencies = [
+    "httpx>=0.25.0",
+    "feedparser>=6.0.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.4.0", "pytest-asyncio>=0.21.0"]
+llm = ["litellm>=1.0.0"]
+
+[tool.setuptools]
+packages = { find = { include = ["signals*", "ensemble*", "creative*", "campaign*", "gtm*", "analytics*", "integrations*", "execution*", "crm*", "memory*", "briefing*"] } }
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"

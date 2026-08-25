@@ -42,7 +42,7 @@ class BrandTokens:
             "{{brand.font}}": self.font_primary,
             "{{brand.handle}}": self.handle,
             "{{brand.name}}": self.name.upper(),
-            "{{brand.tagline}}": self.tagline.upper(),
+            "{{brand.tagline}}": (self.tagline or self.name).upper(),
         }
 
     @classmethod

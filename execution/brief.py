@@ -14,7 +14,7 @@ from typing import Dict, List, Optional, Any
 try:
     from execution.design_templates import BrandTokens
 except ImportError:
-    from marketic.execution.design_templates import BrandTokens
+    from execution.design_templates import BrandTokens
 
 
 def generate_brief(
@@ -77,7 +77,7 @@ def generate_brief(
             try:
                 from campaign.budget_router import BudgetRouter
             except ImportError:
-                from marketic.campaign.budget_router import BudgetRouter
+                from campaign.budget_router import BudgetRouter
             router = BudgetRouter()
             allocations = asyncio.run(router.rebalance(
                 total_budget=total_budget,
@@ -109,7 +109,7 @@ def generate_brief(
         try:
             from execution.publisher import Platform, ContentCalendarManager
         except ImportError:
-            from marketic.execution.publisher import Platform, ContentCalendarManager
+            from execution.publisher import Platform, ContentCalendarManager
         mgr = ContentCalendarManager()
         platform_map = {
             "social": Platform.INSTAGRAM, "instagram": Platform.INSTAGRAM,
