@@ -1,6 +1,6 @@
-# Marketic — Marketing Intelligence OS
+# Marketic — Your Marketing Brain
 
-**Transform market signals into execution-ready briefs. Every decision audited. Every claim measured. All tools open.**
+**You get a market briefing every morning at 8am. Competitor moves, budget advice, and campaign plans — before your first coffee. No analyst headcount required.**
 
 [![GitHub stars](https://img.shields.io/github/stars/Das-rebel/marketic)](https://github.com/Das-rebel/marketic)
 [![Tests](https://github.com/Das-rebel/marketic/actions/workflows/tests.yml/badge.svg)](https://github.com/Das-rebel/marketic/actions/workflows/tests.yml)
@@ -8,145 +8,109 @@
 
 ---
 
-## Quick Launch
+## A Day With Marketic
+
+**☕ 8:00 AM — Your briefing is waiting.**
+Overnight, Marketic scanned prediction markets, Hacker News, Reddit, X, Product Hunt and TikTok.
+Today it tells you: *the Kraken IPO conversation has $1.6M riding on it at 15% odds — worth
+riding that narrative this week. The Macron story? $2.1M volume but 4% likely — ignore it,
+it's noise dressed as signal.*
+
+**🔍 10:00 AM — "What is our competitor doing?"**
+You ask. Marketric pulls their **real ads from the Facebook Ads Library** — actual copy,
+actual delivery dates, actual spend signals — and tells you their hook, their offer,
+and three angles they're leaving open.
+
+**💰 11:00 AM — "Where should next month's budget go?"**
+Not "email gets 5x ROAS so put everything there." Marketic knows that channel runs at 15%
+margin while paid social runs at 85% — so it recommends where profit actually lands.
+
+**📝 2:00 PM — You need a campaign brief for the team.**
+One command produces it: positioning, copy variants, channel split, posting times,
+brand colors and fonts already resolved. Hand it to any AI agent or junior marketer —
+they don't need to ask you anything.
+
+**🌙 Whenever — It remembers.**
+Every decision is logged with its cost and reasoning. Patterns that repeat become
+written rules your future campaigns automatically follow.
+
+---
+
+## What This Replaces
+
+| Instead of... | You have |
+|---|---|
+| A junior analyst compiling Monday reports | An automatic 8am briefing |
+| Guessing which market buzz matters | Probability-scored signals with a track record (Brier-scored against outcomes) |
+| Manually stalking competitor ads | Real ad library pulls on demand |
+| Spreadsheet budget debates | Margin-aware allocation with reasoning attached |
+| Re-explaining brand rules every project | Rules learned once, enforced in every brief |
+
+---
+
+## Setup (Once, ~5 Minutes)
 
 ```bash
 git clone https://github.com/Das-rebel/marketic
 cd marketic && pip install -e .
-python3 daily_briefing.py "ai agents"
+python3 init_memory_db.py
 ```
 
-Live briefing in 60 seconds. Here's real output:
+That's the whole setup. The daily briefing schedules itself (GitHub Action, 8am UTC)
+and commits each digest so you never miss one. Optional keys unlock more:
 
-![Marketic daily briefing — real terminal output](docs/demo_terminal.png)
-
----
-
-## What This Does
-
-Marketic runs the full marketing intelligence loop:
-
-```
-📡 SENSE        6-source signal fan-out (Polymarket · HN · Reddit · X · Product Hunt · TikTok)
-                probability-calibrated: volume × P(YES) — drama filtered, demand ranked
-      ↓
-🧠 THINK        ensemble AI voting · competitor ad intel (real creatives via Facebook
-                Ads Library) · margin-aware budgets (roas × contribution margin)
-      ↓
-📦 HANDOFF      self-contained JSON brief: positioning + copy + budget + posting times
-                + brand tokens + evidence chain — execution agents never call back
-      ↺
-🔁 LEARN        audit trail → recurring patterns → brain/<brand>.md → human PR review
-                → approved rules injected into every future brief
-```
-
-Everything the brain decides is logged (model, cost, confidence, reasoning).
-And the core claim is **measured**: prediction signals are tracked against real
-outcomes with Brier scores, not just asserted.
-
----
-
-## Key Features
-
-| Feature | What It Does |
+| Key | Unlocks |
 |---|---|
-| **Signal Fan-Out** | Parallel collection across 6 sources with consensus-theme synthesis |
-| **Probability-Adjusted Scoring** | `volume × P(YES)` — because 73.4% of Polymarket markets resolve "No", raw volume rewards drama |
-| **Calibration Scorecard** | Predictions auto-resolved against outcomes; Brier score proves (or disproves) the calibration live |
-| **Real Competitor Ad Intel** | Facebook Ads Library integration returns actual ad copy and delivery data — ground truth, not image guessing |
-| **Signal-Driven Prospecting** | Discover prospects → enrich with live market signals → auto-draft outreach → scored CRM leads |
-| **Self-Learning Brain** | Recurring decision patterns distilled into brand rules; humans approve via PR; approved rules bind every future brief |
-| **Ensemble AI Voting** | Multiple models vote; cost tracked per execution; free-tier aware |
-| **Margin-Aware Budgeting** | Optimizes `roas × contribution_margin` — profit over vanity ROAS |
-| **Brand-as-Data** | Zero hardcoded brands; one template renders any identity via `{{brand.*}}` tokens |
-| **43 MCP Tools** | Stdio JSON-RPC server; drops into Claude, Cursor, or any MCP client |
+| *(none)* | Briefings, campaigns, creative, budgets — free local models |
+| `FB_ACCESS_TOKEN` | Real competitor ad library data |
+| `SERPER_API_KEY` | Automatic prospect finding for outreach |
 
 ---
 
-## MCP Usage
+## Questions Marketic Answers Daily
+
+| You ask | It does |
+|---|---|
+| "What's moving in my market?" | Scans 6 sources, filters drama from demand |
+| "Is this trend real?" | Shows the money behind it and its track record |
+| "Build me a launch campaign" | Full brief: strategy, creative, budget, schedule |
+| "Find me customers" | Prospects matching your niche, researched, outreach drafted |
+| "How did we do last week?" | Pipeline pulse + AI spend + signal accuracy score |
+
+No prompt engineering. One plain-English entry point (`ask_marketic`) routes
+any marketing question to the right specialist.
+
+---
+
+## For Your Technical Teammate
+
+Marketic is also a **43-tool MCP server** — drops into Claude Desktop or Cursor
+with one JSON block, so your AI assistant gains all of these abilities natively:
 
 ```json
-{
-  "mcpServers": {
-    "marketic": {
-      "command": "python3",
-      "args": ["/absolute/path/to/marketic/mcp_server.py"]
-    }
-  }
-}
+{ "mcpServers": { "marketic": {
+    "command": "python3",
+    "args": ["/absolute/path/to/marketic/mcp_server.py"] } } }
 ```
 
-Paste into **Claude Desktop** (`~/Library/Application Support/Claude/claude_desktop_config.json`)
-or **Cursor** (`.cursor/mcp.json`).
-
-### Tool Highlights
-
-| You need | Tool |
-|---|---|
-| What's moving right now | `signal_fanout` |
-| Real competitor ads + spend | `search_fb_ads` |
-| A full campaign strategy | `build_campaign` |
-| Creative variants | `generate_creatives` |
-| An agent-ready brief | `generate_brief` |
-| Prospect pipeline | `run_prospect_loop` |
-| Budget allocation by margin | `optimize_budget` |
-| What the system has learned | `distill_learnings` |
-| Plain-language entry point | `ask_marketic` — routes any question to the right tool |
-
-Or skip tool-picking entirely: `ask_marketic("what's moving in AI markets")`.
+Every capability is callable programmatically; every brief is versioned JSON
+([schema](docs/BRIEF_SCHEMA.md)); every decision is auditable via SQLite.
 
 ---
 
-## The Learning Loop
+## Why Trust It?
 
-Every AI decision feeds the audit trail. Recurring patterns get distilled into
-brand-level rules (`brain/<brand>.md`), reviewed by humans via PR, and approved
-rules are injected into every future brief. See [docs/BRAIN_WORKFLOW.md](docs/BRAIN_WORKFLOW.md).
+- **Measured, not asserted:** prediction signals are scored against real outcomes (Brier score in every briefing). If calibration slips, you'll see it.
+- **Transparent by default:** every AI call logs model, cost, confidence, and reasoning chain.
+- **Evidence chains:** every campaign brief lists the exact signals that informed it.
+- **Open source, MIT** — self-hosted, your data stays yours.
 
-## Measured, Not Asserted
+## Learn More
 
-The probability-calibration isn't a slogan — it's a scoreboard:
-
-```
-## 🎯 Signal Calibration
-- Tracked: 26 · Resolved: 12 · Pending: 14
-- Brier score: 0.183 (good; <0.25 beats chance)
-- 20-40% bucket: 5 predictions, actual YES rate 40%
-```
-
-Predictions snapshot on every fan-out, auto-resolve against Polymarket outcomes,
-and surface in the daily briefing.
-
----
-
-## Adaptability
-
-| Adaptation | How |
-|---|---|
-| **Brand swap** | `BrandTokens.from_image()` or config — same templates, any identity |
-| **Scale** | Free stack (local LLMs, $0) → enriched (Serper) → full (HubSpot/Clay) |
-| **Sources** | Filter per-run: `signal_fanout(sources=["polymarket"])` |
-| **Scheduling** | Built-in GitHub Action runs the daily briefing at 08:00 UTC |
-
----
-
-## Why Startups Choose It
-
-- **No marketing expert needed** — signal→brief translation is the product
-- **$0 to start** — all 43 tools run on free local models
-- **Pay-as-you-grow** — API keys optional, everything degrades gracefully
-- **Investor-ready** — audit trail on every decision, evidence chains on every brief
-
----
-
-## Documentation
-
-- [`API_DOCUMENTATION.md`](API_DOCUMENTATION.md) — full 43-tool reference
-- [`docs/BRIEF_SCHEMA.md`](docs/BRIEF_SCHEMA.md) — versioned brief contract for agents
-- [`docs/BRAIN_WORKFLOW.md`](docs/BRAIN_WORKFLOW.md) — how learning works end-to-end
-- [`CONTRIBUTING.md`](CONTRIBUTING.md) — contributing guide
-- [`docs/COUNCIL_ROUND2.md`](docs/COUNCIL_ROUND2.md) — architecture review vs comparable repos
-- [`docs/VAULT_PICKS.md`](docs/VAULT_PICKS.md) — evidence behind every feature decision
+- [`docs/BRAIN_WORKFLOW.md`](docs/BRAIN_WORKFLOW.md) — how it learns and improves
+- [`docs/BRIEF_SCHEMA.md`](docs/BRIEF_SCHEMA.md) — what's inside a brief
+- [`docs/COUNCIL_ROUND2.md`](docs/COUNCIL_ROUND2.md) — architecture vs comparable repos
+- [`API_DOCUMENTATION.md`](API_DOCUMENTATION.md) — all 43 tools
 
 ---
 
