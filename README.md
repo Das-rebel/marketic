@@ -71,7 +71,7 @@ and commits each digest so you never miss one. Optional keys unlock more:
 
 | You ask | It does |
 |---|---|
-| "What's moving in my market?" | Scans 6 sources, filters drama from demand |
+| "What's moving in my market?" | Signal fan-out with region profiles (global / india / us) — filters drama from demand |
 | "Is this trend real?" | Shows the money behind it and its track record |
 | "Build me a launch campaign" | Full brief: strategy, creative, budget, schedule |
 | "Find me customers" | Prospects matching your niche, researched, outreach drafted |
@@ -97,6 +97,16 @@ Every capability is callable programmatically; every brief is versioned JSON
 ([schema](docs/BRIEF_SCHEMA.md)); every decision is auditable via SQLite.
 
 ---
+
+## India-Native Mode
+
+Marketic ships region profiles on the signal fan-out: `SignalFanout().run(query, region="india")` swaps the US-style prediction-market-led scoring for a trend-validation stack. India mode adds Google Trends India (rising queries), Indian marketing media RSS (ET Brand Equity, Afaqs, YourStory, Inc42, Mint), YouTube search ranked by view count, and `expand_hinglish()` query expansion for Indian social search. It drops Polymarket (near-zero India markets) and TikTok (banned in India since 2020); Twitter and Reddit stay.
+
+```python
+sig = await SignalFanout().run("skincare", region="india")
+```
+
+US/global deployments are unchanged — Polymarket-led scoring remains the default.
 
 ## Why Trust It?
 

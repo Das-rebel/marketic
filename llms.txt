@@ -2,7 +2,7 @@
 
 > White-label marketing strategy brain: probability-calibrated market signals, ensemble AI voting with full audit trails, margin-aware budgets, and self-contained briefs that execution agents consume without calling back. Exposed as an MCP server with 43 tools.
 
-Core claim: signals are scored `volume × P(YES)` because 73.4% of Polymarket markets resolve No — raw volume overweights drama. Budgets optimize `roas × contribution_margin`, not vanity ROAS. Every AI decision is logged with model, cost, confidence, and reasoning chain.
+Core claim: signals are scored `volume × P(YES)` because 73.4% of Polymarket markets resolve No — raw volume overweights drama. Budgets optimize `roas × contribution_margin`, not vanity ROAS. Every AI decision is logged with model, cost, confidence, and reasoning chain. Region profiles on the fan-out mean `region="india"` swaps prediction-market-led scoring for trends+media+youtube-led scoring (Google Trends IN rising queries, Indian media RSS, YouTube), while global/us deployments stay Polymarket-led.
 
 ## Install
 
@@ -15,7 +15,7 @@ python3 daily_briefing.py "your topic"
 
 ## Key modules
 
-- [signals/collectors.py](signals/collectors.py): parallel fan-out across Polymarket, Hacker News, Reddit, X, Product Hunt
+- [signals/collectors.py](signals/collectors.py): parallel fan-out with region profiles (`region="global"/"us"/"india"`) across Polymarket, Hacker News, Reddit, X, Product Hunt
 - [ensemble/voting.py](ensemble/voting.py): confidence-weighted multi-model voting
 - [ensemble/audit_trail.py](ensemble/audit_trail.py): SQLite audit log per AI decision
 - [campaign/budget_router.py](campaign/budget_router.py): margin-adjusted budget allocation

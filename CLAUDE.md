@@ -53,6 +53,10 @@ LEARN   audit trail → ensemble/learnings.py distills patterns →
 | `execution/brief.py` | generate_brief — the agent handoff artifact |
 | `npm_dist/` | npm wrapper; bundles domain modules — resync after tool changes |
 
+## Region Profiles
+
+`SignalFanout().run(query, region=...)` supports `global`, `us` (default behavior), and `india`. Profile definitions live in the `REGION_PROFILES` dict in `signals/collectors.py`. The india profile adds google_trends (Trends India, geo=IN rising queries), indian_media (ET Brand Equity / Afaqs / YourStory / Inc42 / Mint RSS), and youtube (yt-dlp search ranked by view count); it excludes polymarket (near-zero India markets) and tiktok (banned in India since 2020) while keeping twitter and reddit. Use `expand_hinglish()` in the same module to broaden English queries with Hinglish variants for Indian social search.
+
 ## Docs Map
 
 - README.md — manager-first overview

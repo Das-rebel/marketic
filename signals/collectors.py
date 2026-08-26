@@ -6,7 +6,13 @@ import os
 import re
 import json
 import shutil
+import time as _time
+from urllib.parse import quote_plus
 import httpx
+try:
+    import feedparser
+except ImportError:  # pragma: no cover - feedparser is a declared dep
+    feedparser = None
 from datetime import datetime, timedelta
 from typing import List, Dict, Any, Optional
 from dataclasses import dataclass, field
@@ -389,6 +395,278 @@ class TikTokCollector:
         return seen[:5]
 
 
+class GoogleTrendsCollector:
+    """Rising Google searches in India via pytrends.
+
+    Graceful degradation:
+    - pytrends not installed -> []
+    - network / rate-limit (429) / parse failure -> []
+    """
+
+    def __init__(self):
+        try:
+            from pytrends.request import TrendReq  # noqa: F401
+            self._available = True
+        except ImportError:
+            self._available = False
+
+    async def collect(self, limit: int = 50, query: str = "") -> List[MarketingSignal]:
+        if not self._available:
+            return []
+        signals = []
+        try:
+            # pytrends is blocking — run in a thread so we don't stall the loop
+            import asyncio
+            def _fetch():
+                import time
+                # Google rate-limits related_queries hard (429) — retry w/ backoff
+                last_exc = None
+                for attempt in range(3):
+                    try:
+                        pt = TrendReq(
+                            hl="en-IN", geo="IN", timeout=(5, 15),
+                            custom_useragent="marketic/2.0 (signals collector)",
+                        )
+                        kw = query or "marketing"
+                        pt.build_payload([kw], timeframe="now 7-d", geo="IN")
+                        return pt.related_queries()[kw].get("rising")
+                    except Exception as exc:
+                        last_exc = exc
+                        if "429" in str(exc) or "TooMany" in type(exc).__name__:
+                            time.sleep([8, 20, 40][attempt])
+                            continue
+                        raise
+                raise last_exc
+            df = await asyncio.get_event_loop().run_in_executor(None, _fetch)
+            if df is None or df.empty:
+                return []
+            for _, row in df.head(10).iterrows():
+                q = str(row.get("query", ""))
+                v = float(row.get("value", 0) or 0)
+                if not q:
+                    continue
+                signals.append(MarketingSignal(
+                    source="google_trends",
+                    signal_type="search_trend",
+                    title=f"Rising search: {q}",
+                    url=f"https://trends.google.com/trends/explore?q={quote_plus(q)}&geo=IN",
+                    engagement_score=min(v, 100) * 10,
+                    sentiment="neutral",
+                    topics=[q],
+                    timestamp=datetime.utcnow().isoformat(),
+                    metadata={"rise_value": v},
+                ))
+        except Exception:
+            # rate limits (429), network errors, parse errors -> degrade silently
+            return []
+        return signals[:10]
+
+
+class IndianMediaRSSCollector:
+    """Indian marketing/business media via RSS feeds (ET Brand Equity, Afaqs,
+    YourStory, Inc42, Mint Marketing).
+
+    Dead feeds are skipped silently. Responses cached in-memory class-level
+    for 30 minutes so hourly briefings don't re-fetch.
+    """
+
+    FEEDS = {
+        "ET Brand Equity": "https://brandequity.economictimes.indiatimes.com/rss/topstories",
+        "Afaqs": "https://www.afaqs.com/rss/afaqs/news rss",
+        "YourStory": "https://yourstory.com/feed",
+        "Inc42": "https://inc42.com/feed/",
+        "Mint Marketing": "https://www.livemint.com/rss/marketing",
+    }
+
+    CACHE_TTL_SECONDS = 30 * 60
+    _cache: Dict[str, tuple] = {}  # feed_url -> (fetched_at_monotonic, entries)
+
+    async def collect(self, limit: int = 50, query: str = "") -> List[MarketingSignal]:
+        if feedparser is None:
+            return []
+        import asyncio
+
+        def _parse(url: str):
+            return feedparser.parse(url)
+
+        all_entries = []
+        alive = []
+        for name, url in self.FEEDS.items():
+            try:
+                cached = self._cache.get(url)
+                now = _time.monotonic()
+                if cached and (now - cached[0]) < self.CACHE_TTL_SECONDS:
+                    entries = cached[1]
+                else:
+                    parsed = await asyncio.get_event_loop().run_in_executor(
+                        None, _parse, url)
+                    entries = list(parsed.entries or [])
+                    self._cache[url] = (now, entries)
+                if entries:
+                    alive.append(name)
+                    all_entries.extend(entries)
+            except Exception:
+                continue  # skip dead feeds silently
+
+        if query:
+            ql = query.lower()
+            filtered = [e for e in all_entries
+                        if any(ql in t.lower() for t in self._entry_topics(e))
+                        or ql in (e.get("title", "") or "").lower()]
+            selected = filtered if filtered else sorted(all_entries, key=self._entry_ts, reverse=True)[:limit]
+        else:
+            selected = sorted(all_entries, key=self._entry_ts, reverse=True)[:limit]
+
+        signals = []
+        for e in selected[:limit]:
+            title = (e.get("title") or "").strip()
+            if not title:
+                continue
+            signals.append(MarketingSignal(
+                source="indian_media",
+                signal_type="news",
+                title=title,
+                url=e.get("link") or "",
+                engagement_score=50.0,  # baseline — RSS has no engagement metric
+                sentiment="neutral",
+                topics=self._entry_topics(e) or ["india_marketing"],
+                timestamp=self._entry_ts(e),
+                metadata={},
+            ))
+        self.last_alive_feeds = alive
+        return signals
+
+    @staticmethod
+    def _entry_topics(entry) -> List[str]:
+        tags = entry.get("tags") or []
+        return [t.get("term", "").lower() for t in tags if t.get("term")][:3]
+
+    @staticmethod
+    def _entry_ts(entry) -> str:
+        for key in ("published", "updated"):
+            val = entry.get(key)
+            if val:
+                return val
+        return ""
+
+
+class YouTubeTrendingCollector:
+    """Top-viewed YouTube videos this week matching a query, via yt-dlp.
+
+    Degradation paths:
+    - yt-dlp binary missing -> [] immediately
+    - subprocess/network/parse failure -> []
+    """
+
+    TIMEOUT_SECONDS = 120.0
+
+    async def collect(self, limit: int = 50, query: str = "") -> List[MarketingSignal]:
+        if shutil.which("yt-dlp") is None:
+            return []
+        if not query:
+            return []
+        search_url = ("https://www.youtube.com/results?search_query="
+                      f"{quote_plus(query)}&sp=CAMSAhAB")  # this week + view sort
+        try:
+            proc = await _asyncio.create_subprocess_exec(
+                "yt-dlp", "--flat-playlist", "--dump-json",
+                "--playlist-end", "40", search_url,
+                stdout=_asyncio.subprocess.PIPE,
+                stderr=_asyncio.subprocess.DEVNULL,
+            )
+            try:
+                stdout, _ = await _asyncio.wait_for(
+                    proc.communicate(), timeout=self.TIMEOUT_SECONDS)
+            except _asyncio.TimeoutError:
+                proc.kill()
+                return []
+            if proc.returncode != 0 or not stdout:
+                return []
+            entries = []
+            for line in stdout.decode("utf-8", errors="replace").splitlines():
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    entries.append(json.loads(line))
+                except json.JSONDecodeError:
+                    continue
+            entries.sort(key=lambda e: e.get("view_count") or 0, reverse=True)
+            signals = []
+            for e in entries[:8]:
+                views = e.get("view_count") or 0
+                desc = e.get("description") or ""
+                hashtags = [t.lower() for t in re.findall(r"#(\w+)", desc)][:5]
+                signals.append(MarketingSignal(
+                    source="youtube",
+                    signal_type="video",
+                    title=(e.get("title") or "(untitled)")[:200],
+                    url=e.get("url") or e.get("webpage_url") or "",
+                    engagement_score=min(views / 1000, 5000),
+                    sentiment="neutral",
+                    topics=hashtags or ["youtube"],
+                    timestamp=datetime.utcnow().isoformat(),
+                    metadata={"view_count": views,
+                              "uploader": e.get("uploader")},
+                ))
+            return signals
+        except Exception:
+            return []
+
+
+# ─── Hinglish query expansion ──────────────────────────────────────────────────
+
+HINGLISH_MAP = {
+    "best": ["sabse acha", "top"],
+    "cheap": ["sasta"],
+    "affordable": ["budget", "sasta"],
+    "review": ["honest review"],
+    "skincare": ["skin care hindi"],
+    "haircare": ["hair care hindi"],
+    "makeup": ["makeup hindi", "shaadi makeup"],
+    "fitness": ["gym hindi", "weight loss desi"],
+    "diet": ["diet plan indian"],
+    "phone": ["mobile", "smartphone under budget"],
+    "laptop": ["laptop under budget"],
+    "car": ["gaadi", "car mileage"],
+    "bike": ["bike mileage"],
+    "loan": ["loan bina documents", "emi"],
+    "insurance": ["insurance hindi", "policy kaise"],
+    "invest": ["paisa invest", "mutual fund hindi"],
+    "save money": ["paisa bachao", "bachat"],
+    "shopping": ["online shopping offer", "sale india"],
+    "recipe": ["recipe hindi", "ghar ka khana"],
+    "travel": ["ghumne", "budget trip india"],
+    "education": ["padhai", "coaching"],
+    "job": ["naukri", "sarkari naukri"],
+    "startup": ["business idea hindi"],
+    "marketing": ["digital marketing hindi"],
+}
+
+
+def expand_hinglish(query: str) -> List[str]:
+    """Broaden an English marketing query with common Hinglish variants.
+
+    Returns [query] + mapped variants + generic India suffixes, capped at 8.
+    Used by callers to broaden X/YouTube searches for Indian audiences.
+    """
+    q = (query or "").strip()
+    variants = [q] if q else []
+    ql = q.lower()
+    for term, alts in HINGLISH_MAP.items():
+        if re.search(rf"\b{re.escape(term)}\b", ql):
+            variants.extend(alts)
+    suffixes = [f"{q} in india", f"{q} india"] if q else []
+    variants.extend(suffixes)
+    seen, out = set(), []
+    for v in variants:
+        vl = v.lower()
+        if vl not in seen:
+            seen.add(vl)
+            out.append(v)
+    return out[:8]
+
+
 def aggregate_signals(all_signals: List[MarketingSignal]) -> Dict[str, Any]:
     """Aggregate signals across sources."""
     
@@ -560,6 +838,14 @@ class SignalFanout:
         brief = await fanout.run(query="ai agents", limit_per_source=25)
     """
 
+    REGION_PROFILES = {
+        "global": {"sources": None},  # all
+        "india": {"sources": ["twitter", "reddit", "google_trends",
+                              "indian_media", "youtube", "facebook_ads"]},
+        "us": {"sources": ["polymarket", "hacker_news", "reddit",
+                           "product_hunt", "twitter"]},
+    }
+
     def __init__(self):
         self.collectors = {
             "product_hunt": ProductHuntCollector(),
@@ -568,11 +854,27 @@ class SignalFanout:
             "reddit": RedditCollector(),
             "polymarket": PolymarketCollector(),
             "tiktok": TikTokCollector(),
+            "google_trends": GoogleTrendsCollector(),
+            "indian_media": IndianMediaRSSCollector(),
+            "youtube": YouTubeTrendingCollector(),
         }
 
     async def run(self, query: str = "", sources: Optional[List[str]] = None,
-                  limit_per_source: int = 25) -> Dict[str, Any]:
-        """Fan out, gather, normalize, synthesize."""
+                  limit_per_source: int = 25,
+                  region: Optional[str] = None) -> Dict[str, Any]:
+        """Fan out, gather, normalize, synthesize.
+
+        region: optional key into REGION_PROFILES ("global"|"india"|"us").
+        If given and the caller didn't pass explicit `sources`, the region's
+        source list is used. For region="india", polymarket / tiktok /
+        product_hunt are deliberately excluded: polymarket has near-zero India
+        markets, tiktok is banned in India, and product_hunt skews US launch
+        culture.
+        """
+        if region and sources is None:
+            profile = self.REGION_PROFILES.get(region)
+            if profile:
+                sources = profile.get("sources")
         active = {k: v for k, v in self.collectors.items()
                   if not sources or k in sources}
 
