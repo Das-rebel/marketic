@@ -40,6 +40,33 @@ class SEOContentRequest:
     content_type: ContentType = ContentType.BLOG_POST
     target_length: int = 1500
     competitor_url: str = ""
+    # Optional list of SEO opportunity signals, each:
+    # {"keyword": str, "difficulty": float 0-100, "serp_gap": str}
+    opportunity_signals: Optional[List[Dict[str, Any]]] = None
+
+
+def rank_opportunities(signals: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Rank SEO opportunity signals by difficulty ascending (easiest wins first).
+
+    Pure helper — no I/O, unit-testable without any API call.
+    Missing/invalid difficulty values sort last.
+    """
+    def _difficulty(s: Dict[str, Any]) -> float:
+        try:
+            return float(s.get("difficulty", 100.0))
+        except (TypeError, ValueError):
+            return 100.0
+
+    return sorted(signals or [], key=_difficulty)
+
+
+def _format_difficulty(signal: Dict[str, Any]) -> str:
+    """Format a signal's difficulty as a compact integer-ish string."""
+    try:
+        d = float(signal.get("difficulty", 0))
+        return str(int(d)) if d == int(d) else f"{d:g}"
+    except (TypeError, ValueError):
+        return "?"
 
 
 class SEOGenerator:
@@ -94,20 +121,38 @@ class SEOGenerator:
         
         specs = type_specs.get(request.content_type, type_specs[ContentType.BLOG_POST])
         
+        # Opportunity signals: easiest-win keywords injected as a TARGET GAPS section
+        gaps_section = ""
+        h2_note = ""
+        if getattr(request, "opportunity_signals", None):
+            ranked_gaps = rank_opportunities(request.opportunity_signals)
+            lines = [
+                f"- {s.get('keyword', '')} (difficulty {_format_difficulty(s)}) — gap: {s.get('serp_gap', 'unspecified')}"
+                for s in ranked_gaps
+                if s.get("keyword")
+            ]
+            if lines:
+                gaps_section = (
+                    "\nTARGET GAPS (ranked easiest-first — build H2 sections around these):\n"
+                    + "\n".join(lines)
+                    + "\n"
+                )
+                h2_note = "; prioritize the TARGET GAPS keywords — structure your main H2 headers around them, easiest-difficulty first"
+        
         prompt = f"""You are an expert SEO content writer. Generate optimized content for the keyword: "{request.keyword}"
 
 CONTENT TYPE: {request.content_type.value}
-{stype_specs["length_note"]}
+{specs["length_note"]}
 
 SECTIONS TO INCLUDE:
-{type_specs["sections"]}
+{type_specs["sections"]}{gaps_section}
 
 REQUIREMENTS:
 1. Meta title: Under 60 characters, includes main keyword
 2. Meta description: Under 160 characters, compelling, includes keyword
 3. Use keyword naturally throughout (1-2% density)
 4. H1 should be catchy, includes keyword
-5. H2 headers should be descriptive, benefit-driven
+5. H2 headers should be descriptive, benefit-driven{h2_note}
 6. FAQ: Answer common questions concisely
 7. Write for humans first, search engines second
 8. Include a clear CTA

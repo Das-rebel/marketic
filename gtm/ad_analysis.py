@@ -6,9 +6,12 @@ psychological triggers). This module feeds that intel into generate_creatives
 so counter-variants know what they're countering.
 
 Backend ladder:
-  1. Local Ollama vision model (llava / qwen2.5-vl) — free, private, bulk
-  2. OpenRouter/OpenAI vision — paid fallback
-  3. Metadata-only heuristic — no VLM required, still useful structure
+  1. Facebook Ads Library (real competitor creatives/copy/spend) — used when
+     a brand_name is given and FB_ACCESS_TOKEN is set; copy is mined via the
+     trigger lexicon + cross-competitor angle comparison
+  2. Local Ollama vision model (llava / qwen2.5-vl) — free, private, bulk
+  3. OpenRouter/OpenAI vision — paid fallback
+  4. Metadata-only heuristic — no VLM required, still useful structure
 """
 
 import os
@@ -18,6 +21,14 @@ from typing import Dict, List, Optional, Any
 from dataclasses import dataclass, field, asdict
 
 import httpx
+
+try:
+    from gtm.fb_ads_library import FBAdsLibraryClient
+except ImportError:  # allow running from repo root or as plain script in gtm/
+    try:
+        from fb_ads_library import FBAdsLibraryClient
+    except ImportError:
+        FBAdsLibraryClient = None  # type: ignore[assignment,misc]
 
 OLLAMA_BASE = os.environ.get("OLLAMA_BASE", "http://127.0.0.1:11434")
 VISION_MODEL_ENV = os.environ.get("MARKETIC_VISION_MODEL", "")
@@ -79,14 +90,22 @@ class AdAnalyzer:
         image_path_or_url: str = "",
         transcript: str = "",
         caption: str = "",
+        brand_name: str = "",
     ) -> AdBreakdown:
         """
         Analyze one ad from any available input:
+        - brand_name (+ FB_ACCESS_TOKEN set) → Facebook Ads Library real copy
         - image/video frame (path or URL) → vision model
         - transcript (video voiceover/subtitles) → text model path
         - caption/copy → metadata heuristics at minimum
         """
-        # Ladder 1: local Ollama vision
+        # Ladder 1: Facebook Ads Library (needs brand name + token)
+        if brand_name:
+            result = self._via_fb_library(brand_name)
+            if result:
+                return result
+
+        # Ladder 2: local Ollama vision
         if image_path_or_url:
             model = _detect_ollama_vision_model()
             if model:
@@ -94,20 +113,21 @@ class AdAnalyzer:
                 if result:
                     return result
 
-        # Ladder 2: cloud vision
+        # Ladder 3: cloud vision
         if image_path_or_url:
             result = self._via_cloud_vision(image_path_or_url)
             if result:
                 return result
 
-        # Ladder 3: heuristics on whatever text we have
+        # Ladder 4: heuristics on whatever text we have
         return self._heuristic(transcript=transcript, caption=caption,
                                source=image_path_or_url)
 
     def analyze_batch(self, ads: List[Dict[str, str]]) -> List[AdBreakdown]:
         """Bulk deconstruction — the actual 'watch them in bulk' workflow."""
         return [self.analyze(**{k: v for k, v in ad.items()
-                                if k in ("image_path_or_url", "transcript", "caption")})
+                                if k in ("image_path_or_url", "transcript",
+                                         "caption", "brand_name")})
                 for ad in ads]
 
     def derive_counter_brief(self, breakdowns: List[AdBreakdown]) -> Dict[str, Any]:
@@ -137,6 +157,72 @@ class AdAnalyzer:
         }
 
     # ── backends ─────────────────────────────────────────────────────────
+
+    _ADS_LIBRARY_URL = "https://www.facebook.com/ads/library/"
+
+    def _via_fb_library(self, brand_name: str) -> Optional[AdBreakdown]:
+        """Ladder 1: real creative copy from Meta's public Ads Library."""
+        if FBAdsLibraryClient is None:
+            return None
+        try:
+            client = FBAdsLibraryClient()
+            if not client.is_available():
+                return None
+            ads = client.search_ads(brand_name)
+            if not ads:
+                return None
+
+            # Aggregate all competitor copy into one text blob for the lexicon.
+            bodies = [b for ad in ads for b in ad.get("bodies", [])]
+            titles = [t for ad in ads for t in ad.get("titles", [])]
+            combined_copy = " ".join(bodies + titles).strip()
+            if not combined_copy:
+                return None
+
+            breakdown = self._heuristic(
+                caption="",
+                transcript=combined_copy[:8000],
+                source=f"{self._ADS_LIBRARY_URL}?q={brand_name.replace(' ', '+')}",
+            )
+            breakdown.backend = "fb_ads_library"
+            breakdown.confidence = 0.9
+            breakdown.ad_type = "library-copy"
+            breakdown.counter_angles = self._derive_counter_angles(brand_name, ads, bodies)
+            return breakdown
+        except Exception as e:
+            print(f"[ad_analysis] fb library failed: {e}")
+            return None
+
+    @staticmethod
+    def _derive_counter_angles(brand_name: str, ads: List[Dict],
+                               bodies: List[str]) -> List[str]:
+        """Compare creative bodies across competitors to find attack angles."""
+        angles: List[str] = []
+        pages = {ad.get("page_name", "") for ad in ads} - {brand_name}
+        if pages:
+            angles.append(
+                f"{len(pages)} other pages run similar copy for this term — "
+                f"differentiate on proof, not claims"
+            )
+        joined = " ".join(bodies).lower()
+        saturated = [t for k, t in AdAnalyzer._TRIGGER_LEXICON.items()
+                     if joined.count(k) >= 3]
+        if saturated:
+            angles.append(
+                "saturated triggers across competitors: "
+                + ", ".join(sorted(set(saturated))) + " — invert instead"
+            )
+        lengths = [len(b.split()) for b in bodies if b.strip()]
+        if lengths:
+            if sum(lengths) / len(lengths) > 60:
+                angles.append("competitors lean long-form copy — short punchy variant may cut through")
+            else:
+                angles.append("competitors use short copy — detailed long-form angle is open")
+        platforms = {p.lower() for ad in ads for p in ad.get("platforms", [])}
+        missing = {"instagram", "audience_network"} - platforms
+        if missing:
+            angles.append(f"underused placements: {', '.join(sorted(missing))}")
+        return angles[:4]
 
     def _via_ollama_vision(self, model: str, image_ref: str) -> Optional[AdBreakdown]:
         try:

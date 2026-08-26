@@ -5,6 +5,7 @@ Signal Collectors — Marketing signals from Product Hunt, Hacker News, Twitter,
 import os
 import re
 import json
+import shutil
 import httpx
 from datetime import datetime, timedelta
 from typing import List, Dict, Any, Optional
@@ -286,6 +287,108 @@ class TrustpilotCollector:
         ]
 
 
+class TikTokCollector:
+    """Collect content signals from TikTok via yt-dlp metadata extraction.
+
+    Pragmatic approach (TikTok's search API is unauthenticated/unreliable):
+    - If the query looks like a URL or profile, use it directly.
+    - Otherwise treat it as a hashtag: https://www.tiktok.com/tag/<query>
+    Runs `yt-dlp --skip-download -J <url>` via asyncio subprocess, parses the
+    JSON stdout for title/description/upload_date/view_count, and maps into
+    MarketingSignal entries with hashtags as topics.
+
+    Degradation paths:
+    - yt-dlp binary missing -> [] immediately
+    - any subprocess/parse failure -> []
+    """
+
+    def __init__(self, timeout_seconds: float = 120.0):
+        self._timeout = timeout_seconds
+
+    async def collect(self, limit: int = 50, query: str = "") -> List[MarketingSignal]:
+        # Graceful degradation 1: yt-dlp not installed
+        if shutil.which("yt-dlp") is None:
+            return []
+        if not query:
+            return []
+
+        try:
+            target = self._resolve_target(query)
+            proc = await _asyncio.create_subprocess_exec(
+                "yt-dlp", "--flat-playlist", "--skip-download", "-J",
+                "--playlist-end", str(limit), target,
+                stdout=_asyncio.subprocess.PIPE,
+                stderr=_asyncio.subprocess.DEVNULL,
+            )
+            try:
+                stdout, _ = await _asyncio.wait_for(proc.communicate(), timeout=self._timeout)
+            except _asyncio.TimeoutError:
+                proc.kill()
+                return []
+            if proc.returncode != 0 or not stdout:
+                return []
+            data = json.loads(stdout.decode("utf-8", errors="replace"))
+            return self._map_entries(data, limit)
+        except Exception:
+            # Graceful degradation 2: any failure (network, parse, tiktok block)
+            return []
+
+    @staticmethod
+    def _resolve_target(query: str) -> str:
+        q = query.strip()
+        if q.startswith("http://") or q.startswith("https://"):
+            return q
+        # bare handle (@user), hashtag (#tag) or plain keyword -> tag page
+        tag = q.lstrip("@#")
+        return f"https://www.tiktok.com/tag/{tag}"
+
+    def _map_entries(self, data: Dict[str, Any], limit: int) -> List[MarketingSignal]:
+        signals: List[MarketingSignal] = []
+        entries = data.get("entries") or ([data] if data.get("id") else [])
+        for entry in entries[:limit]:
+            if not isinstance(entry, dict):
+                continue
+            title = entry.get("title") or entry.get("description") or "(untitled)"
+            description = entry.get("description") or ""
+            views = entry.get("view_count") or 0
+            timestamp = ""
+            upload_date = entry.get("upload_date")  # yyyymmdd
+            if upload_date:
+                try:
+                    timestamp = datetime.strptime(upload_date, "%Y%m%d").isoformat()
+                except ValueError:
+                    pass
+            url = entry.get("url") or entry.get("webpage_url") or ""
+            signals.append(MarketingSignal(
+                source="tiktok",
+                signal_type="content",
+                title=title[:200],
+                url=url,
+                engagement_score=float(views),
+                sentiment="neutral",
+                topics=self._extract_hashtags(description) or ["tiktok"],
+                timestamp=timestamp,
+                metadata={
+                    "view_count": views,
+                    "like_count": entry.get("like_count"),
+                    "comment_count": entry.get("comment_count"),
+                    "uploader": entry.get("uploader") or entry.get("channel"),
+                    "duration": entry.get("duration"),
+                },
+            ))
+        return signals
+
+    @staticmethod
+    def _extract_hashtags(text: str) -> List[str]:
+        tags = re.findall(r"#([\w\u00c0-\uffff]+)", text or "")
+        seen: List[str] = []
+        for t in tags:
+            t_low = t.lower()
+            if t_low not in seen:
+                seen.append(t_low)
+        return seen[:5]
+
+
 def aggregate_signals(all_signals: List[MarketingSignal]) -> Dict[str, Any]:
     """Aggregate signals across sources."""
     
@@ -425,6 +528,7 @@ SOURCE_WEIGHTS = {
     "reddit": 0.7,       # community depth, slower
     "product_hunt": 0.6, # launch-day spike bias
     "twitter": 0.5,      # highest noise floor
+    "tiktok": 0.5,       # viral reach, weak purchase intent
 }
 
 
@@ -463,6 +567,7 @@ class SignalFanout:
             "twitter": TwitterCollector(),
             "reddit": RedditCollector(),
             "polymarket": PolymarketCollector(),
+            "tiktok": TikTokCollector(),
         }
 
     async def run(self, query: str = "", sources: Optional[List[str]] = None,

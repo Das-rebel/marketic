@@ -496,6 +496,46 @@ TOOLS = [
             "required": ["question"],
         },
     },
+    {
+        "name": "run_prospect_loop",
+        "description": "Signal-driven prospecting (JoeCRM pattern): discover prospects matching a niche, enrich with live market signals, auto-draft personalized outreach, insert scored leads into CRM. Degrades to signal-derived prospects when Serper key absent.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "niche_query": {"type": "string", "description": "Who to prospect, e.g. 'D2C skincare brands founder'"},
+                "market_query": {"type": "string", "description": "Market topic for signal enrichment"},
+                "limit": {"type": "integer", "default": 5},
+            },
+            "required": ["niche_query"],
+        },
+    },
+    {
+        "name": "distill_learnings",
+        "description": "Promote recurring audit-trail patterns into brand learnings; optionally capture an explicit rule; export brain/<brand>.md markdown for human review.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "brand": {"type": "string", "default": "default"},
+                "capture_rule": {"type": "string", "description": "If set, capture this rule instead of distilling"},
+                "category": {"type": "string", "default": "general"},
+                "min_occurrences": {"type": "integer", "default": 3},
+                "export_brain": {"type": "boolean", "default": True},
+            },
+        },
+    },
+    {
+        "name": "search_fb_ads",
+        "description": "Search Facebook Ads Library for REAL competitor ad creatives, copy and delivery data (ground truth, not VLM guessing). Requires FB_ACCESS_TOKEN env var.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "brand_name": {"type": "string", "description": "Advertiser/brand to search"},
+                "country": {"type": "string", "default": "ALL"},
+                "limit": {"type": "integer", "default": 20},
+            },
+            "required": ["brand_name"],
+        },
+    },
     # Ensemble & Audit Tools
     {
         "name": "ensemble_vote",
@@ -1237,6 +1277,53 @@ async def handle_generate_brief(args):
     )
 
 
+async def handle_run_prospect_loop(args):
+    """Signal-driven prospect discovery -> enrichment -> outreach drafts -> CRM."""
+    from crm.prospect_loop import ProspectLoop
+    loop = ProspectLoop()
+    return await loop.run(
+        niche_query=args.get("niche_query", ""),
+        market_query=args.get("market_query", ""),
+        limit=int(args.get("limit", 5)),
+    )
+
+
+async def handle_distill_learnings(args):
+    """Promote recurring audit-trail patterns into brand learnings + brain md export."""
+    from ensemble.learnings import LearningEngine
+    engine = LearningEngine()
+    if args.get("capture_rule"):
+        engine.capture(
+            brand=args.get("brand", "default"),
+            category=args.get("category", "general"),
+            rule_text=args["capture_rule"],
+            confidence=float(args.get("confidence", 0.5)),
+        )
+        return {"captured": args["capture_rule"]}
+    found = engine.distill(min_occurrences=int(args.get("min_occurrences", 3)))
+    path = None
+    if args.get("export_brain", True) and (args.get("brand") or "default"):
+        path = engine.export_brain_md(args.get("brand", "default"))
+    return {"distilled": len(found), "brain_path": path,
+            "learnings": [{"rule": l.get("rule_text"), "seen": l.get("occurrences")}
+                          for l in (found or [])][:10]}
+
+
+async def handle_search_fb_ads(args):
+    """Search Facebook Ads Library for real competitor creatives/copy (ground truth)."""
+    try:
+        from gtm.fb_ads_library import FBAdsLibraryClient
+    except ImportError:
+        return {"error": "fb_ads_library module unavailable"}
+    client = FBAdsLibraryClient()
+    if not client.is_available():
+        return {"error": "FB_ACCESS_TOKEN not set — ads library backend unavailable",
+                "hint": "set FB_ACCESS_TOKEN env var (Meta developer token)"}
+    return {"ads": client.search_ads(args.get("brand_name", ""),
+                                    country=args.get("country", "ALL"),
+                                    limit=int(args.get("limit", 20)))}
+
+
 async def handle_ask_marketic(args):
     """
     Master router: one entry point that routes a natural-language marketing
@@ -1355,6 +1442,9 @@ HANDLERS = {
     "generate_brief": handle_generate_brief,
     "signal_fanout": handle_signal_fanout,
     "ask_marketic": handle_ask_marketic,
+    "run_prospect_loop": handle_run_prospect_loop,
+    "distill_learnings": handle_distill_learnings,
+    "search_fb_ads": handle_search_fb_ads,
     "analyze_competitor_ad": handle_analyze_competitor_ad,
 }
 

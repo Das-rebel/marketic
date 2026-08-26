@@ -1,0 +1,51 @@
+name: Daily Briefing
+
+on:
+  schedule:
+    - cron: "0 8 * * *"  # daily at 08:00 UTC
+  workflow_dispatch:
+    inputs:
+      query:
+        description: "Briefing query topic"
+        required: false
+        default: "ai"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: daily-briefing
+  cancel-in-progress: false
+
+jobs:
+  briefing:
+    runs-on: ubuntu-latest
+    env:
+      MARKETIC_BRIEF_WEBHOOK: ${{ secrets.MARKETIC_BRIEF_WEBHOOK }}
+      QUERY: ${{ github.event.inputs.query || 'ai' }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install package
+        run: pip install -e .
+
+      - name: Run daily briefing
+        run: python3 daily_briefing.py "$QUERY"
+
+      - name: Commit generated briefing log
+        run: |
+          git config user.name "marketic-bot"
+          git config user.email "marketic-bot@users.noreply.github.com"
+          git add logs/
+          if git diff --cached --quiet; then
+            echo "No new briefing log to commit."
+          else
+            git commit -m "chore(briefing): daily digest for $(date -u +%Y%m%d) [skip ci]"
+            git push
+          fi
