@@ -483,6 +483,19 @@ TOOLS = [
             },
         },
     },
+    {
+        "name": "ask_marketic",
+        "description": "Master router - one entry point for Marketic. Describe what you need in plain language (e.g. 'what's moving in AI markets', 'allocate my budget', 'deconstruct this competitor ad') and it routes to the right specialist tool(s). Use route_only=true to preview routing without executing.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "question": {"type": "string", "description": "Natural-language marketing question or task"},
+                "route_only": {"type": "boolean", "default": False},
+                "arguments": {"type": "object", "description": "Optional arguments passed through to the routed tool"},
+            },
+            "required": ["question"],
+        },
+    },
     # Ensemble & Audit Tools
     {
         "name": "ensemble_vote",
@@ -1224,6 +1237,44 @@ async def handle_generate_brief(args):
     )
 
 
+async def handle_ask_marketic(args):
+    """
+    Master router: one entry point that routes a natural-language marketing
+    question to the right specialist tool(s) and returns combined results.
+    Pattern borrowed from skill-suites' agency agent (council rec #9).
+    """
+    q = (args.get("question") or "").lower()
+    route_table = [
+        (["competitor ad", "deconstruct", "hook", "their ads", "ad analysis"], "analyze_competitor_ad"),
+        (["budget", "allocate", "spend", "split"], "optimize_budget"),
+        (["campaign", "launch", "funnel"], "build_campaign"),
+        (["signal", "trend", "moving", "market news", "buzz"], "signal_fanout"),
+        (["positioning", "differentiate", "wedge"], "analyze_positioning"),
+        (["narrative", "story", "messaging"], "generate_narrative"),
+        (["seo", "keyword", "rank"], "generate_seo_content"),
+        (["social post", "instagram", "linkedin", "tweet"], "generate_social_posts"),
+        (["brief", "handoff", "execution plan"], "generate_brief"),
+        (["attribution", "which channel", "credit"], "get_attribution"),
+        (["lead", "deal", "pipeline", "crm"], "crm_dashboard"),
+        (["cost", "spend on ai", "audit"], "audit_get_cost_summary"),
+    ]
+    routed, matched = [], set()
+    for keywords, tool in route_table:
+        if any(k in q for k in keywords) and tool not in matched:
+            if tool in HANDLERS:
+                routed.append(tool)
+                matched.add(tool)
+    if args.get("route_only"):
+        return {"question": q, "routed_tools": routed}
+    if not routed:
+        return {"question": q, "error": "no matching tool",
+                "hint": "try mentioning signals/budget/campaign/competitor/seo/social/brief"}
+    # execute the primary match; pass through any supplied arguments
+    primary = routed[0]
+    result = await HANDLERS[primary](args.get("arguments", {}))
+    return {"question": q, "routed_to": routed, "primary_result": result}
+
+
 async def handle_signal_fanout(args):
     from signals.collectors import SignalFanout
     fanout = SignalFanout()
@@ -1303,6 +1354,7 @@ HANDLERS = {
     "audit_get_cost_summary": handle_audit_get_cost_summary,
     "generate_brief": handle_generate_brief,
     "signal_fanout": handle_signal_fanout,
+    "ask_marketic": handle_ask_marketic,
     "analyze_competitor_ad": handle_analyze_competitor_ad,
 }
 

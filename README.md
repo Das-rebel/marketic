@@ -94,11 +94,16 @@ python3 daily_briefing.py "ai agents"
   "mcpServers": {
     "marketic": {
       "command": "python3",
-      "args": ["/path/to/marketic/mcp_server.py"]
+      "args": ["/absolute/path/to/marketic/mcp_server.py"]
     }
   }
 }
 ```
+
+Paste into:
+- **Claude Desktop**: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- **Cursor**: `.cursor/mcp.json` in your workspace
+- **Any MCP client**: same shape — command + args over stdio
 
 ### Key MCP Tools (39 total)
 

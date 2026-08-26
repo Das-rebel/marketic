@@ -1,0 +1,33 @@
+# Marketic
+
+> White-label marketing strategy brain: probability-calibrated market signals, ensemble AI voting with full audit trails, margin-aware budgets, and self-contained briefs that execution agents consume without calling back. Exposed as an MCP server with 39 tools.
+
+Core claim: signals are scored `volume × P(YES)` because 73.4% of Polymarket markets resolve No — raw volume overweights drama. Budgets optimize `roas × contribution_margin`, not vanity ROAS. Every AI decision is logged with model, cost, confidence, and reasoning chain.
+
+## Install
+
+```bash
+git clone https://github.com/Das-rebel/marketic && cd marketic
+pip install -e .
+python3 init_memory_db.py
+python3 daily_briefing.py "your topic"
+```
+
+## Key modules
+
+- [signals/collectors.py](signals/collectors.py): parallel fan-out across Polymarket, Hacker News, Reddit, X, Product Hunt
+- [ensemble/voting.py](ensemble/voting.py): confidence-weighted multi-model voting
+- [ensemble/audit_trail.py](ensemble/audit_trail.py): SQLite audit log per AI decision
+- [campaign/budget_router.py](campaign/budget_router.py): margin-adjusted budget allocation
+- [gtm/ad_analysis.py](gtm/ad_analysis.py): VLM competitor ad deconstruction (local Ollama → cloud → heuristics)
+- [execution/brief.py](execution/brief.py): generate_brief — the agent handoff artifact
+- [execution/design_templates.py](execution/design_templates.py): BrandTokens — brand identity as data
+
+## Contracts
+
+- [docs/BRIEF_SCHEMA.md](docs/BRIEF_SCHEMA.md): versioned brief JSON contract (v1.0, additive-only)
+
+## Reference
+
+- [API_DOCUMENTATION.md](API_DOCUMENTATION.md): all 39 MCP tools
+- [docs/COUNCIL_REVIEW.md](docs/COUNCIL_REVIEW.md): architecture review vs comparable repos
