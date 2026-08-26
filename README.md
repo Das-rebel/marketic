@@ -152,6 +152,9 @@ Paste into:
 - [`CONTRIBUTING.md`](CONTRIBUTING.md) — How to contribute
 - [`docs/FEATURE_GAP_ANALYSIS.md`](docs/FEATURE_GAP_ANALYSIS.md) — Architecture rationale
 - [`docs/VAULT_PICKS.md`](docs/VAULT_PICKS.md) — Evidence-backed feature decisions
+- [`docs/BRAIN_WORKFLOW.md`](docs/BRAIN_WORKFLOW.md) — How Marketic learns durably
+- [`docs/BRIEF_SCHEMA.md`](docs/BRIEF_SCHEMA.md) — Brief contract for execution agents
+- [`docs/COUNCIL_ROUND2.md`](docs/COUNCIL_ROUND2.md) — Architecture review vs comparable repos
 
 ---
 
