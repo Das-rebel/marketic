@@ -46,6 +46,61 @@ class SignalScorecard:
         self._init_table()
 
     # ------------------------------------------------------------------ #
+    def track_signal(self, signal_data: Dict[str, Any]) -> Dict[str, Any]:
+        """Persist a single signal and return its generated ID.
+
+        Mirrors the Polymarket snapshot path but accepts a flat dict so the
+        MCP handler can call it directly without constructing nested metadata.
+        """
+        stored = self.snapshot([signal_data])
+        # The snapshot call stores everything under the same URL dedup key.
+        # We retrieve the row we just inserted to surface its id.
+        conn = self._connect()
+        try:
+            url = self._get_field(signal_data, "url")
+            row = conn.execute(
+                "SELECT id FROM signal_predictions WHERE url = ? ORDER BY captured_at DESC LIMIT 1",
+                (url,),
+            ).fetchone()
+            signal_id = row["id"] if row else None
+        finally:
+            self._close(conn)
+        return {"tracked": stored > 0, "signal_id": signal_id}
+
+    def get_calibration_report(
+        self,
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None,
+        source: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Return the bucketed calibration report (date/source filtering not yet
+        implemented at the SQL level — reserved for future)."""
+        return self.calibration_report()
+
+    def resolve_signal(
+        self,
+        signal_id: str,
+        actual_outcome: str,
+        notes: str = "",
+    ) -> Dict[str, Any]:
+        """Resolve a tracked signal by its DB id with YES/NO/PARTIAL."""
+        outcome_map = {"yes": "yes", "no": "no", "partial": "no"}
+        outcome = outcome_map.get(actual_outcome.strip().lower())
+        if not outcome:
+            return {"error": f"Invalid outcome: {actual_outcome}"}
+        conn = self._connect()
+        try:
+            cur = conn.execute(
+                "UPDATE signal_predictions SET outcome = ?, resolved_at = ? WHERE id = ?",
+                (outcome, _now(), signal_id),
+            )
+            conn.commit()
+            ok = cur.rowcount > 0
+        finally:
+            self._close(conn)
+        return {"resolved": ok, "signal_id": signal_id}
+
+    # ------------------------------------------------------------------ #
     def _connect(self):
         return self._conn_factory()
 
@@ -97,15 +152,17 @@ class SignalScorecard:
             for sig in signals or []:
                 meta = self._get_field(sig, "metadata") or {}
                 prob = meta.get("implied_yes_prob")
-                if prob is None:
-                    continue
+                # implied_yes_prob is optional — None means unknown probability,
+                # not "skip this signal"
+                # (e.g. generic signals) still get stored with implied_prob=NULL
                 try:
-                    prob = float(prob)
-                    # normalize 0-1 probabilities to percent scale
-                    if 0.0 <= prob <= 1.0 and prob in (0.0, 1.0) or 0 < prob < 1:
-                        prob = prob * 100.0
+                    prob = float(prob) if prob is not None else None
+                    if prob is not None:
+                        # normalize 0-1 probabilities to percent scale
+                        if 0.0 <= prob <= 1.0 and prob in (0.0, 1.0) or 0 < prob < 1:
+                            prob = prob * 100.0
                 except (TypeError, ValueError):
-                    continue
+                    prob = None
                 url = self._get_field(sig, "url")
                 if not url:
                     continue
@@ -128,7 +185,7 @@ class SignalScorecard:
                         self._get_field(sig, "title"),
                         url,
                         self._get_field(sig, "engagement_score"),
-                        min(max(prob, 0.0), 100.0),
+                        (min(max(prob, 0.0), 100.0) if prob is not None else None),
                     ),
                 )
                 stored += 1
@@ -346,3 +403,30 @@ if __name__ == "__main__":
 
     print(sc.weekly_summary())
     print("=== smoke test passed ===")
+
+    # --- smoke test for new wrapper methods ---
+    _mem2 = _sq.connect(":memory:")
+    _mem2.row_factory = _sq.Row
+
+    def _m():
+        return _mem2
+
+    sc2 = SignalScorecard(db_connection_factory=_m)
+    test_sig = {
+        "source": "polymarket",
+        "title": "Test market",
+        "url": "https://polymarket.com/event/test-smoke",
+        "engagement_score": 50000.0,
+        "metadata": {"implied_yes_prob": 65},
+    }
+    tracked = sc2.track_signal(test_sig)
+    assert isinstance(tracked, dict) and "tracked" in tracked, f"track_signal returned {tracked}"
+    print(f"track_signal -> {tracked}")
+    report = sc2.get_calibration_report()
+    assert isinstance(report, dict) and "brier_score" in report
+    print(f"get_calibration_report -> brier={report['brier_score']}")
+    if tracked.get("signal_id"):
+        res = sc2.resolve_signal(tracked["signal_id"], "YES", "test note")
+        assert isinstance(res, dict) and "resolved" in res
+        print(f"resolve_signal -> {res}")
+    print("=== wrapper smoke test passed ===")

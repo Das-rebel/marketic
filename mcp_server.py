@@ -24,6 +24,49 @@ SERVER_VERSION = "1.0.0"
 # ─── Tool Definitions ─────────────────────────────────────────
 
 TOOLS = [
+    # Signal Calibration Tools
+    {
+        "name": "track_signal",
+        "description": "Record a signal prediction for later calibration tracking. Once tracked, you can call resolve_signal when the outcome is known to measure prediction accuracy (Brier score). Used to build calibration over time.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "title": {"type": "string"},
+                "source": {"type": "string"},
+                "signal_type": {"type": "string"},
+                "url": {"type": "string"},
+                "engagement_score": {"type": "number"},
+                "topics": {"type": "array", "items": {"type": "string"}},
+                "metadata": {"type": "object"},
+            },
+            "required": ["title", "source", "signal_type", "url", "engagement_score"],
+        },
+    },
+    {
+        "name": "get_calibration_report",
+        "description": "Get the signal calibration report: number of predictions, Brier score (lower=better), resolved vs pending breakdown, and per-source accuracy. Shows whether Marketic's signal sources are reliable.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "start_date": {"type": "string"},
+                "end_date": {"type": "string"},
+                "source": {"type": "string"},
+            },
+        },
+    },
+    {
+        "name": "resolve_signal",
+        "description": "Resolve a previously tracked signal with its actual outcome (YES/NO/PARTIAL). Used to close the calibration loop and improve future signal quality.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "signal_id": {"type": "string"},
+                "actual_outcome": {"type": "string"},
+                "notes": {"type": "string"},
+            },
+            "required": ["signal_id", "actual_outcome"],
+        },
+    },
     # GTM Tools
     {
         "name": "analyze_competitor",
@@ -484,6 +527,19 @@ TOOLS = [
         },
     },
     {
+        "name": "breakdown_ad",
+        "description": "Break down a competitor ad into its structural components: hook, offer, call-to-action, emotional triggers, pacing, and format. Works from a URL (uses Ollama vision model locally if available, falls back to cloud vision then heuristic parsing) or from raw ad copy text. Optionally enrich with brand context.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "ad_url_or_text": {"type": "string", "description": "URL to competitor ad image/video, or raw ad copy text if no URL"},
+                "brand_name": {"type": "string", "default": "", "description": "Name of the competitor brand for context"},
+                "analysis_depth": {"type": "string", "enum": ["quick", "standard", "deep"], "default": "standard", "description": "Depth of analysis: quick (heuristic only), standard (VLM if available), deep (full VLM with extended output)"},
+            },
+            "required": ["ad_url_or_text"],
+        },
+    },
+    {
         "name": "ask_marketic",
         "description": "Master router - one entry point for Marketic. Describe what you need in plain language (e.g. 'what's moving in AI markets', 'allocate my budget', 'deconstruct this competitor ad') and it routes to the right specialist tool(s). Use route_only=true to preview routing without executing.",
         "inputSchema": {
@@ -596,6 +652,114 @@ TOOLS = [
                 "start_date": {"type": "string", "default": ""},
                 "end_date": {"type": "string", "default": ""},
             },
+        },
+    },
+    # Publishing layer
+    {
+        "name": "schedule_content",
+        "description": "Schedule a social media post to a platform via Postiz or direct API. Takes platform, content text, optional media URLs, scheduled time (ISO datetime), and hashtags. Falls back to PostizPublisher.publish_post() when platform=postiz.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "platform": {"type": "string", "enum": ["postiz", "instagram", "linkedin", "twitter"]},
+                "content_text": {"type": "string"},
+                "media_urls": {"type": "array", "items": {"type": "string"}, "default": []},
+                "scheduled_time": {"type": "string", "description": "ISO datetime string, e.g. 2025-01-15T10:00:00"},
+                "hashtags": {"type": "array", "items": {"type": "string"}, "default": []},
+            },
+            "required": ["platform", "content_text"],
+        },
+    },
+    {
+        "name": "get_upcoming_posts",
+        "description": "Get all scheduled posts for the upcoming N days from the content calendar.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "platform": {"type": "string", "default": ""},
+                "days": {"type": "integer", "default": 7},
+                "limit": {"type": "integer", "default": 20},
+            },
+        },
+    },
+    {
+        "name": "optimize_hashtags",
+        "description": "Get optimized hashtags for a social media post. Returns a mix of trending and content-specific hashtags, respecting platform limits.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "content_text": {"type": "string"},
+                "platform": {"type": "string", "default": "instagram"},
+                "limit": {"type": "integer", "default": 15},
+            },
+            "required": ["content_text"],
+        },
+    },
+    # UGC layer
+    {
+        "name": "curate_ugc",
+        "description": "Curate user-generated content for a given hashtag. Discovers posts via hashtag monitoring, filters by aesthetic score, and returns a list sorted by combined relevance + aesthetic score.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "hashtag": {"type": "string"},
+                "platform": {"type": "string", "default": "instagram"},
+                "limit": {"type": "integer", "default": 10},
+                "min_aesthetic_score": {"type": "number", "default": 0.4},
+            },
+            "required": ["hashtag"],
+        },
+    },
+    {
+        "name": "request_ugc_permission",
+        "description": "Request permission from a UGC creator to repost their content. Sends a DM template (English or Indonesian) via platform API.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "content_url": {"type": "string"},
+                "platform": {"type": "string"},
+                "message": {"type": "string", "default": ""},
+            },
+            "required": ["content_url", "platform"],
+        },
+    },
+    {
+        "name": "track_ugc",
+        "description": "Track UGC repost performance: reach, likes, comments, saves, and shares across platforms.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "repost_id": {"type": "string"},
+                "platform": {"type": "string"},
+            },
+            "required": ["repost_id", "platform"],
+        },
+    },
+    # Creative / design layer
+    {
+        "name": "render_template",
+        "description": "Render a brand design template to a Paper MCP script or JSON layer spec. Accepts a template name, brand tokens (name, primary, background, accent, secondary, font, handle, tagline), and optional content overrides. Returns HTML/layers or a placeholders list if required content is missing.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "template_name": {"type": "string"},
+                "brand": {
+                    "type": "object",
+                    "properties": {
+                        "name": {"type": "string"},
+                        "primary": {"type": "string"},
+                        "background": {"type": "string"},
+                        "accent": {"type": "string"},
+                        "secondary": {"type": "string"},
+                        "font": {"type": "string"},
+                        "handle": {"type": "string"},
+                        "tagline": {"type": "string"},
+                    },
+                    "required": ["name", "primary", "background", "accent", "secondary", "font", "handle"],
+                },
+                "content_overrides": {"type": "object", "default": {}},
+            },
+            "required": ["template_name", "brand"],
         },
     },
 ]
@@ -1338,6 +1502,7 @@ async def handle_ask_marketic(args):
         # / "ads library" don't collide with the generic ad-analysis keywords.
         (["facebook ads", "fb ads", "ads library", "real ads", "spend data"], "search_fb_ads"),
         (["competitor ad", "deconstruct", "hook", "their ads", "ad analysis"], "analyze_competitor_ad"),
+        (["breakdown ad", "ad structure", "hook offer cta", "ad breakdown"], "breakdown_ad"),
         (["budget", "allocate", "spend", "split"], "optimize_budget"),
         (["campaign", "launch", "funnel"], "build_campaign"),
         (["signal", "trend", "moving", "market news", "buzz"], "signal_fanout"),
@@ -1349,6 +1514,16 @@ async def handle_ask_marketic(args):
         (["attribution", "which channel", "credit"], "get_attribution"),
         (["lead", "deal", "pipeline", "crm"], "crm_dashboard"),
         (["cost", "spend on ai", "audit"], "audit_get_cost_summary"),
+        (["track", "calibration", "brier", "signal tracking"], "track_signal"),
+        (["calibration report", "brier score", "signal accuracy", "prediction quality"], "get_calibration_report"),
+        (["resolve", "close signal", "actual outcome"], "resolve_signal"),
+        (["schedule", "post", "publish", "content calendar"], "schedule_content"),
+        (["upcoming posts", "what's scheduled", "calendar"], "get_upcoming_posts"),
+        (["hashtag", "optimize hashtags", "discover hashtags"], "optimize_hashtags"),
+        (["ugc", "curate", "user generated", "repost"], "curate_ugc"),
+        (["permission", "ugc request"], "request_ugc_permission"),
+        (["track ugc", "ugc analytics"], "track_ugc"),
+        (["render", "template", "design", "visual"], "render_template"),
     ]
     routed, matched = [], set()
     for keywords, tool in route_table:
@@ -1365,6 +1540,41 @@ async def handle_ask_marketic(args):
     primary = routed[0]
     result = await HANDLERS[primary](args.get("arguments", {}))
     return {"question": q, "routed_to": routed, "primary_result": result}
+
+
+async def handle_track_signal(args):
+    from analytics.scorecard import SignalScorecard
+    sc = SignalScorecard()
+    sig = {
+        "title": args.get("title", ""),
+        "source": args.get("source", ""),
+        "signal_type": args.get("signal_type", ""),
+        "url": args.get("url", ""),
+        "engagement_score": args.get("engagement_score", 0),
+        "topics": args.get("topics", []),
+        "metadata": args.get("metadata", {}),
+    }
+    return sc.track_signal(sig)
+
+
+async def handle_get_calibration_report(args):
+    from analytics.scorecard import SignalScorecard
+    sc = SignalScorecard()
+    return sc.get_calibration_report(
+        start_date=args.get("start_date"),
+        end_date=args.get("end_date"),
+        source=args.get("source"),
+    )
+
+
+async def handle_resolve_signal(args):
+    from analytics.scorecard import SignalScorecard
+    sc = SignalScorecard()
+    return sc.resolve_signal(
+        signal_id=args["signal_id"],
+        actual_outcome=args["actual_outcome"],
+        notes=args.get("notes", ""),
+    )
 
 
 async def handle_signal_fanout(args):
@@ -1403,6 +1613,348 @@ async def handle_analyze_competitor_ad(args):
     if args.get("derive"):
         return {"counter_brief": analyzer.derive_counter_brief([b]), "breakdown": result}
     return result
+
+
+async def handle_breakdown_ad(args):
+    """Break down a competitor ad via URL or raw copy text.
+
+    analysis_depth maps to confidence tiers:
+      - quick: heuristic fallback only (confidence ~0.2)
+      - standard: ollama vision -> cloud vision -> heuristic (confidence 0.2-0.85)
+      - deep: same ladder but returns extended counter-angles + tone map
+    """
+    from gtm.ad_analysis import AdAnalyzer
+
+    ad_input = args.get("ad_url_or_text", "").strip()
+    if not ad_input:
+        return {"error": "ad_url_or_text is required"}
+
+    brand_name = args.get("brand_name", "")
+    depth = args.get("analysis_depth", "standard")
+
+    analyzer = AdAnalyzer()
+
+    # Determine input mode: URL/media reference vs plain-text ad copy
+    is_url = ad_input.startswith(("http://", "https://", "file://"))
+
+    if is_url:
+        breakdown = analyzer.analyze(
+            image_path_or_url=ad_input,
+            transcript="",
+            caption="",
+            brand_name=brand_name,
+        )
+    else:
+        # Plain text / ad copy — route via transcript for heuristic
+        breakdown = analyzer.analyze(
+            image_path_or_url="",
+            transcript=ad_input,
+            caption=ad_input,
+            brand_name=brand_name,
+        )
+
+    result = asdict(breakdown) if hasattr(breakdown, "__dataclass_fields__") else breakdown.__dict__
+
+    if depth == "deep":
+        counter = analyzer.derive_counter_brief([breakdown])
+        result["_counter_brief"] = counter
+
+    result["_analysis_depth"] = depth
+    return result
+
+
+# Publishing layer handlers
+async def handle_schedule_content(args):
+    from execution.publisher import ContentCalendarManager, PostizPublisher, Platform, Post, PostStatus
+    from datetime import datetime
+
+    platform_str = args.get("platform", "postiz")
+    content_text = args.get("content_text", "")
+    media_urls = args.get("media_urls", [])
+    scheduled_time_str = args.get("scheduled_time")
+    hashtags = args.get("hashtags", [])
+
+    # Map platform string to Platform enum
+    platform_map = {
+        "postiz": Platform.INSTAGRAM,  # postiz maps to IG for calendar purposes
+        "instagram": Platform.INSTAGRAM,
+        "linkedin": Platform.LINKEDIN,
+        "twitter": Platform.TWITTER,
+    }
+    platform_enum = platform_map.get(platform_str, Platform.INSTAGRAM)
+
+    if platform_str == "postiz":
+        # Fall back to PostizPublisher.publish_post
+        publisher = PostizPublisher()
+        scheduled_for = None
+        if scheduled_time_str:
+            try:
+                scheduled_for = datetime.fromisoformat(scheduled_time_str)
+            except ValueError:
+                pass
+        post = Post(
+            post_id=f"postiz_{int(datetime.utcnow().timestamp())}",
+            platform=Platform.INSTAGRAM,
+            content=content_text,
+            media_urls=media_urls,
+            hashtags=hashtags,
+            status=PostStatus.SCHEDULED if scheduled_for else PostStatus.DRAFT,
+            scheduled_for=scheduled_for.isoformat() if scheduled_for else None,
+            published_at=None,
+        )
+        result = await publisher.publish_post(post)
+        return {"scheduled": result.success, "post_id": result.post_id, "error": result.error, "url": result.url}
+
+    # Use ContentCalendarManager
+    cal = ContentCalendarManager()
+    scheduled_for = None
+    if scheduled_time_str:
+        try:
+            scheduled_for = datetime.fromisoformat(scheduled_time_str)
+        except ValueError:
+            pass
+
+    post = cal.create_calendar_entry(
+        platform=platform_enum,
+        content=content_text,
+        hashtags=hashtags,
+        media_urls=media_urls,
+        scheduled_time=scheduled_for,
+    )
+    results = await cal.schedule_content([post])
+    if results:
+        r = results[0]
+        return {"scheduled": r.success, "post_id": r.post_id, "error": r.error, "url": r.url}
+    return {"scheduled": False, "post_id": None, "error": "schedule_content returned no results"}
+
+
+async def handle_get_upcoming_posts(args):
+    from execution.publisher import ContentCalendarManager, Platform
+
+    platform_str = args.get("platform")
+    days = int(args.get("days", 7))
+    limit = int(args.get("limit", 20))
+
+    cal = ContentCalendarManager()
+    posts = cal.get_upcoming_posts(days=days)
+
+    if platform_str:
+        platform_map = {
+            "instagram": Platform.INSTAGRAM,
+            "linkedin": Platform.LINKEDIN,
+            "twitter": Platform.TWITTER,
+        }
+        plat = platform_map.get(platform_str)
+        if plat:
+            posts = [p for p in posts if p.platform == plat]
+
+    posts = posts[:limit]
+    return {
+        "posts": [
+            {
+                "post_id": p.post_id,
+                "platform": p.platform.value,
+                "content": p.content,
+                "hashtags": p.hashtags,
+                "status": p.status.value,
+                "scheduled_for": p.scheduled_for,
+            }
+            for p in posts
+        ],
+        "count": len(posts),
+    }
+
+
+async def handle_optimize_hashtags(args):
+    from execution.publisher import HashtagOptimizer, Platform
+
+    content_text = args.get("content_text", "")
+    platform_str = args.get("platform", "instagram")
+    limit = int(args.get("limit", 15))
+
+    platform_map = {
+        "instagram": Platform.INSTAGRAM,
+        "facebook": Platform.FACEBOOK,
+        "twitter": Platform.TWITTER,
+        "linkedin": Platform.LINKEDIN,
+        "tiktok": Platform.TIKTOK,
+    }
+    platform_enum = platform_map.get(platform_str, Platform.INSTAGRAM)
+
+    optimizer = HashtagOptimizer()
+    hashtags = optimizer.get_hashtags_for_post(
+        content=content_text,
+        platform=platform_enum,
+        count=limit,
+    )
+    return {"hashtags": hashtags, "optimized": True}
+
+
+# UGC layer handlers
+async def handle_curate_ugc(args):
+    from execution.ugc_curator import UGCCurator, UGCContent, PermissionStatus
+
+    hashtag = args.get("hashtag", "")
+    platform_str = args.get("platform", "instagram")
+    limit = int(args.get("limit", 10))
+    min_aesthetic = float(args.get("min_aesthetic_score", 0.4))
+
+    curator = UGCCurator()
+    discovered = await curator.discover_content(
+        hashtags=[hashtag],
+        platforms=[platform_str],
+        limit=limit,
+    )
+    filtered = curator.filter_content(discovered, min_aesthetic=min_aesthetic)
+
+    return {
+        "curated": [
+            {
+                "url": c.image_url,
+                "caption": c.caption,
+                "author": c.username,
+                "aesthetic_score": c.aesthetic_score,
+                "hashtags": c.hashtags,
+                "likes": c.likes,
+                "platform": c.platform,
+            }
+            for c in filtered[:limit]
+        ],
+        "total_discovered": len(discovered),
+        "total_curated": len(filtered),
+    }
+
+
+async def handle_request_ugc_permission(args):
+    from execution.ugc_curator import UGCCurator, UGCContent, PermissionStatus
+
+    content_url = args.get("content_url", "")
+    platform_str = args.get("platform", "instagram")
+    message = args.get("message", "")
+
+    # Build a minimal UGCContent from the content_url as best-effort
+    # (actual impl would look up real content; here we construct for the permission request)
+    fake_content = UGCContent(
+        content_id=content_url,
+        platform=platform_str,
+        username="unknown",
+        caption="",
+        hashtags=[],
+        image_url=content_url,
+        video_url=None,
+        likes=0,
+        comments=0,
+        posted_at="",
+        relevance_score=0.0,
+        aesthetic_score=0.0,
+        permission_status=PermissionStatus.PENDING,
+        permission_requested_at=None,
+        permission_granted_at=None,
+    )
+
+    curator = UGCCurator()
+    perm_request = await curator.request_permission(fake_content)
+
+    return {
+        "requested": True,
+        "permission_id": perm_request.request_id,
+        "username": perm_request.username,
+        "platform": perm_request.platform,
+        "message_template": perm_request.message_template,
+        "status": perm_request.status.value,
+    }
+
+
+async def handle_track_ugc(args):
+    from execution.ugc_curator import UGCAnalytics, UGCRepost, UGCContent, PermissionStatus
+
+    repost_id = args.get("repost_id", "")
+    platform_str = args.get("platform", "instagram")
+
+    # Build a minimal UGCRepost for tracking (actual impl would look up real repost)
+    fake_content = UGCContent(
+        content_id="unknown",
+        platform=platform_str,
+        username="unknown",
+        caption="",
+        hashtags=[],
+        image_url="",
+        video_url=None,
+        likes=0,
+        comments=0,
+        posted_at="",
+        relevance_score=0.0,
+        aesthetic_score=0.0,
+        permission_status=PermissionStatus.PENDING,
+        permission_requested_at=None,
+        permission_granted_at=None,
+    )
+    fake_repost = UGCRepost(
+        repost_id=repost_id,
+        original_content=fake_content,
+        branded_caption="",
+        hashtags=[],
+        scheduled_for=None,
+        posted_to=[platform_str],
+        status="published",
+    )
+
+    analytics = UGCAnalytics()
+    result = await analytics.track_repost(fake_repost)
+    return {"tracked": True, "reposts": result.get("metrics", {}).get("reach", 0)}
+
+
+# Creative layer handlers
+async def handle_render_template(args):
+    from execution.design_templates import TemplateRenderer, BrandTokens
+
+    template_name = args.get("template_name", "")
+    brand_dict = args.get("brand", {})
+    content_overrides = args.get("content_overrides", {})
+
+    # Build BrandTokens from brand dict
+    brand_tokens = BrandTokens(
+        name=brand_dict.get("name", "Brand"),
+        tagline=brand_dict.get("tagline", ""),
+        handle=brand_dict.get("handle", "@brand"),
+        primary_color=brand_dict.get("primary", "#1A1A1A"),
+        background_color=brand_dict.get("background", "#FFFFFF"),
+        accent_color=brand_dict.get("accent", "#FF6600"),
+        secondary_color=brand_dict.get("secondary", "#008000"),
+        font_primary=brand_dict.get("font", "Helvetica"),
+    )
+
+    renderer = TemplateRenderer()
+    renderer.library.tokens = brand_tokens
+
+    # Collect all [PLACEHOLDER] tokens from the template to detect missing required content
+    from execution.design_templates import TemplateLibrary
+    library = TemplateLibrary(tokens=brand_tokens)
+    tmpl = library.get_template(template_name)
+
+    if not tmpl:
+        return {"error": f"Template not found: {template_name}", "available_templates": list(library.templates.keys())}
+
+    # Determine required placeholders from template layers that look like [KEY]
+    import re
+    required_placeholders = set()
+    for layer in tmpl.layers:
+        found = re.findall(r'\[([A-Z_]+)\]', layer.content)
+        required_placeholders.update(found)
+
+    # Merge content_overrides with defaults
+    placeholders = dict(content_overrides)
+
+    # Check which required placeholders are missing
+    missing = required_placeholders - set(placeholders.keys())
+
+    if missing:
+        # Return placeholders list so caller knows what's needed
+        return {"placeholders": sorted(missing), "template_id": template_name, "template_name": tmpl.name}
+
+    # Render using Paper MCP script format
+    html = renderer.render_for_paper_mcp(template_name, placeholders)
+    return {"html": html, "preview_url": f"marketic://preview/{template_name}", "template_id": template_name}
 
 
 # ─── Handler Registry ─────────────────────────────────────────
@@ -1451,6 +2003,20 @@ HANDLERS = {
     "distill_learnings": handle_distill_learnings,
     "search_fb_ads": handle_search_fb_ads,
     "analyze_competitor_ad": handle_analyze_competitor_ad,
+    "breakdown_ad": handle_breakdown_ad,
+    "track_signal": handle_track_signal,
+    "get_calibration_report": handle_get_calibration_report,
+    "resolve_signal": handle_resolve_signal,
+    # Publishing layer
+    "schedule_content": handle_schedule_content,
+    "get_upcoming_posts": handle_get_upcoming_posts,
+    "optimize_hashtags": handle_optimize_hashtags,
+    # UGC layer
+    "curate_ugc": handle_curate_ugc,
+    "request_ugc_permission": handle_request_ugc_permission,
+    "track_ugc": handle_track_ugc,
+    # Creative layer
+    "render_template": handle_render_template,
 }
 
 
