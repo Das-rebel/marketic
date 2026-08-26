@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * marketic-mcp - JS wrapper that invokes the Python MCP server
- * Sets PYTHONPATH so the bundled marketic/ package is found
+ * Sets PYTHONPATH so the bundled domain modules (signals/, ensemble/, ...) are found
  */
 const { spawn } = require('child_process');
 const path = require('path');
