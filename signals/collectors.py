@@ -602,7 +602,19 @@ class SignalFanout:
                     "errors": errors}
 
         all_signals = _normalize_scores(all_signals)
+
+        # Calibration data collection: snapshot prediction-market signals so
+        # the scorecard can later measure volume x P(YES) against real
+        # resolutions. Never let scorecard failures break the fan-out.
+        snapshotted = 0
+        try:
+            from analytics.scorecard import SignalScorecard
+            snapshotted = SignalScorecard().snapshot(all_signals)
+        except Exception as exc:  # noqa: BLE001
+            errors.setdefault("scorecard", str(exc))
+
         return {"query": query, "total": len(all_signals),
+                "calibration_snapshot": snapshotted,
                 "errors": errors, **self.synthesize(all_signals)}
 
     def synthesize(self, signals: List[MarketingSignal]) -> Dict[str, Any]:

@@ -79,7 +79,32 @@ def build_briefing(query: str = "", sources: list = None) -> str:
     except Exception:
         pass
 
-    # ── 3. Pipeline pulse ────────────────────────────────────────────
+    # ── 3. Signal calibration scorecard ────────────────────────────
+    try:
+        from analytics.scorecard import SignalScorecard
+        card = SignalScorecard()
+        resolved_n = card.resolve_pending()
+        rep = card.calibration_report()
+        lines.append(f"\n## 🎯 Signal Calibration")
+        if rep.get("n_resolved", 0) == 0 and rep.get("n_pending", 0) == 0:
+            lines.append("No predictions tracked yet — snapshots collect automatically with each fan-out.")
+        else:
+            if resolved_n:
+                lines.append(f"*{resolved_n} predictions auto-resolved this run*")
+            brier = rep.get("brier_score", 0)
+            n = rep.get("n_total", 0)
+            lines.append(f"- Tracked: {n} · Resolved: {rep.get('n_resolved', 0)} · Pending: {rep.get('n_pending', 0)}")
+            if rep.get("n_resolved", 0):
+                # Brier < 0.25 beats random guessing; lower is better
+                grade = "good" if brier < 0.25 else "needs tuning"
+                lines.append(f"- Brier score: **{brier:.3f}** ({grade}; <0.25 beats chance)")
+                for bucket, stats in (rep.get("buckets") or {}).items():
+                    if stats.get("n"):
+                        lines.append(f"  - {bucket}: {stats['n']} predictions, actual YES rate {stats['actual_yes_rate']:.0%}")
+    except Exception as e:
+        pass  # scorecard section is optional; never break the briefing
+
+    # ── 4. Pipeline pulse ────────────────────────────────────────────
     try:
         from crm import CRMMaster
         dash = CRMMaster().get_crm_dashboard()
