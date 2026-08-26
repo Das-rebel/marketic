@@ -31,12 +31,42 @@ def generate_brief(
     channel_performance: Optional[Dict[str, Any]] = None,
     positioning_summary: str = "",
     competitor_insights: str = "",
+    source_signals: Optional[List[Dict[str, Any]]] = None,
+    brand: str = "",
 ) -> Dict[str, Any]:
     """
     Build the complete handoff brief. Pure orchestration of existing modules —
     no new intelligence, just assembly.
     """
     channels = channels or ["social", "email"]
+
+    # ---- Learnings injection (Feature B) — never crash brief generation ----
+    def _load_brand_rules(brand_name: str) -> List[Dict[str, Any]]:
+        if not brand_name:
+            return []
+        try:
+            try:
+                from ensemble.audit_trail import get_connection
+            except ImportError:
+                from audit_trail import get_connection
+            conn = get_connection()
+            try:
+                rows = conn.execute("""
+                    SELECT rule_text, category FROM learnings
+                    WHERE brand IS ?
+                      AND (status = 'approved' OR confidence >= 0.7)
+                    ORDER BY occurrences DESC, confidence DESC
+                    LIMIT 10
+                """, (brand_name,)).fetchall()
+                return [{"rule": r["rule_text"], "category": r["category"]}
+                        for r in rows]
+            finally:
+                conn.close()
+        except Exception:
+            return []
+
+    brand_rules = _load_brand_rules(brand)
+
     key_benefits = key_benefits or []
     channel_performance = channel_performance or {}
     tokens = BrandTokens.from_brand_memory(brand_tokens or {})
@@ -63,6 +93,20 @@ def generate_brief(
             "key_benefits": key_benefits,
         },
     }
+
+    # Evidence chain (Feature A) — only present when source signals provided
+    if source_signals is not None:
+        brief["evidence_chain"] = {
+            "signal_count": len(source_signals),
+            "top_signals": [
+                {"title": s.get("title", ""), "source": s.get("source", ""),
+                 "score": s.get("engagement_score")}
+                for s in source_signals[:5]
+            ],
+            "generated_from": "marketic signal fan-out",
+        }
+    if brand_rules:
+        brief["brand_rules"] = brand_rules
 
     if positioning_summary:
         brief["positioning"] = {"summary": positioning_summary}
@@ -139,6 +183,7 @@ def generate_brief(
             "modify brand tokens without PR review",
             "publish without human_approved flag set",
             "store secrets or PII in memory files",
+            "remove or fabricate evidence_chain entries",
         ],
     }
 

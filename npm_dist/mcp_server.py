@@ -10,6 +10,7 @@ Via Quay:        spawned automatically by quay/src/server/marketing/config.ts
 
 import sys
 import json
+from dataclasses import asdict
 import asyncio
 import traceback
 from typing import Any, Dict, List, Optional
@@ -126,6 +127,7 @@ TOOLS = [
                 "total_budget": {"type": "number"},
                 "current_allocation": {"type": "object", "description": "JSON of channel -> amount"},
                 "channel_performance": {"type": "object", "description": "JSON of channel -> {roas, conversions}"},
+                "strategy": {"type": "string", "enum": ["roas_optimized", "conversion_focused", "awareness_focused", "balanced"], "default": "roas_optimized"},
             },
             "required": ["total_budget", "current_allocation", "channel_performance"],
         },
@@ -148,13 +150,13 @@ TOOLS = [
     # Signal & Analytics Tools
     {
         "name": "collect_signals",
-        "description": "Collect marketing signals from Product Hunt, Hacker News, and social platforms for a brand.",
+        "description": "Collect marketing signals from Product Hunt, Hacker News, Twitter, Reddit for a brand.",
         "inputSchema": {
             "type": "object",
             "properties": {
                 "brand": {"type": "string"},
                 "days": {"type": "integer", "default": 7},
-                "sources": {"type": "array", "items": {"type": "string"}, "default": ["product_hunt", "hacker_news", "twitter"]},
+                "sources": {"type": "array", "items": {"type": "string"}, "default": ["product_hunt", "hacker_news", "twitter", "reddit"]},
             },
             "required": ["brand"],
         },
@@ -432,25 +434,189 @@ TOOLS = [
             "required": ["workflow_id", "steps", "first_step"],
         },
     },
+    {
+        "name": "generate_brief",
+        "description": "Generate a self-contained campaign brief (handoff artifact) for any brand execution agent: positioning, budget split, posting windows, resolved BrandTokens, and execution contract. The agent can execute without calling back.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "campaign_name": {"type": "string"},
+                "objective": {"type": "string", "enum": ["awareness", "consideration", "conversion", "lead_generation", "retention"]},
+                "product_name": {"type": "string"},
+                "product_description": {"type": "string"},
+                "target_audience": {"type": "string", "default": ""},
+                "channels": {"type": "array", "items": {"type": "string"}, "default": ["social", "email"]},
+                "total_budget": {"type": "number", "default": 10000},
+                "duration_weeks": {"type": "integer", "default": 4},
+                "key_benefits": {"type": "array", "items": {"type": "string"}, "default": []},
+                "brand_tokens": {"type": "object", "description": "Brand kit: name, colors, font, handle, voice_notes"},
+                "channel_performance": {"type": "object", "description": "channel -> {spend, roas, contribution_margin, conversions}"},
+                "positioning_summary": {"type": "string", "default": ""},
+                "competitor_insights": {"type": "string", "default": ""},
+            },
+            "required": ["campaign_name", "objective", "product_name", "product_description"],
+        },
+    },
+    {
+        "name": "signal_fanout",
+        "description": "Parallel multi-source signal search (Product Hunt, HN, Twitter, Reddit, Polymarket) with cross-source engagement normalization. Returns one synthesized brief with consensus themes and money outliers.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "query": {"type": "string", "default": ""},
+                "sources": {"type": "array", "items": {"type": "string"}, "default": []},
+                "limit_per_source": {"type": "integer", "default": 25},
+            },
+        },
+    },
+    {
+        "name": "analyze_competitor_ad",
+        "description": "Deconstruct a competitor ad (image/video frame URL or local path) via VLM: hook, pacing, psychological triggers, CTA, counter-angles. Falls back to copy heuristics when no vision backend available. Use derive=true to aggregate multiple ads into a counter-brief for generate_creatives.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "image_path_or_url": {"type": "string", "default": ""},
+                "transcript": {"type": "string", "default": ""},
+                "caption": {"type": "string", "default": ""},
+                "batch": {"type": "array", "items": {"type": "object"}, "description": "list of {image_path_or_url, transcript, caption}"},
+                "derive": {"type": "boolean", "default": False, "description": "return aggregated counter-brief instead of raw breakdowns"},
+            },
+        },
+    },
+    {
+        "name": "ask_marketic",
+        "description": "Master router - one entry point for Marketic. Describe what you need in plain language (e.g. 'what's moving in AI markets', 'allocate my budget', 'deconstruct this competitor ad') and it routes to the right specialist tool(s). Use route_only=true to preview routing without executing.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "question": {"type": "string", "description": "Natural-language marketing question or task"},
+                "route_only": {"type": "boolean", "default": False},
+                "arguments": {"type": "object", "description": "Optional arguments passed through to the routed tool"},
+            },
+            "required": ["question"],
+        },
+    },
+    {
+        "name": "run_prospect_loop",
+        "description": "Signal-driven prospecting (JoeCRM pattern): discover prospects matching a niche, enrich with live market signals, auto-draft personalized outreach, insert scored leads into CRM. Degrades to signal-derived prospects when Serper key absent.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "niche_query": {"type": "string", "description": "Who to prospect, e.g. 'D2C skincare brands founder'"},
+                "market_query": {"type": "string", "description": "Market topic for signal enrichment"},
+                "limit": {"type": "integer", "default": 5},
+            },
+            "required": ["niche_query"],
+        },
+    },
+    {
+        "name": "distill_learnings",
+        "description": "Promote recurring audit-trail patterns into brand learnings; optionally capture an explicit rule; export brain/<brand>.md markdown for human review.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "brand": {"type": "string", "default": "default"},
+                "capture_rule": {"type": "string", "description": "If set, capture this rule instead of distilling"},
+                "category": {"type": "string", "default": "general"},
+                "min_occurrences": {"type": "integer", "default": 3},
+                "export_brain": {"type": "boolean", "default": True},
+            },
+        },
+    },
+    {
+        "name": "search_fb_ads",
+        "description": "Search Facebook Ads Library for REAL competitor ad creatives, copy and delivery data (ground truth, not VLM guessing). Requires FB_ACCESS_TOKEN env var.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "brand_name": {"type": "string", "description": "Advertiser/brand to search"},
+                "country": {"type": "string", "default": "ALL"},
+                "limit": {"type": "integer", "default": 20},
+            },
+            "required": ["brand_name"],
+        },
+    },
+    # Ensemble & Audit Tools
+    {
+        "name": "ensemble_vote",
+        "description": "Run ensemble voting across multiple AI models. Selects optimal model tier based on task complexity. Returns consensus decision with confidence score.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "task_type": {"type": "string", "enum": ["ad_copy", "social_post", "keyword_research", "competitor_analysis", "campaign_strategy", "brand_voice_analysis", "briefing_generation"]},
+                "prompt": {"type": "string"},
+                "context": {"type": "object", "default": {}},
+                "models": {"type": "array", "items": {"type": "string"}, "default": []},
+            },
+            "required": ["task_type", "prompt"],
+        },
+    },
+    {
+        "name": "audit_log",
+        "description": "Log an AI marketing action with full audit trail. Records model, cost, confidence, reasoning chain, and human approval status.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "action": {"type": "string"},
+                "model": {"type": "string", "default": ""},
+                "input_tokens": {"type": "integer", "default": 0},
+                "output_tokens": {"type": "integer", "default": 0},
+                "cost": {"type": "number", "default": 0.0},
+                "confidence": {"type": "number", "default": 0.0},
+                "reasoning_chain": {"type": "array", "items": {"type": "string"}, "default": []},
+                "result_summary": {"type": "string", "default": ""},
+                "human_approved": {"type": "boolean", "default": None},
+                "brand_id": {"type": "string", "default": ""},
+                "metadata": {"type": "object", "default": {}},
+            },
+            "required": ["action"],
+        },
+    },
+    {
+        "name": "audit_get_log",
+        "description": "Retrieve audit log entries with filtering by brand, action, and date range.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "brand_id": {"type": "string", "default": ""},
+                "action": {"type": "string", "default": ""},
+                "start_date": {"type": "string", "default": ""},
+                "end_date": {"type": "string", "default": ""},
+                "limit": {"type": "integer", "default": 100},
+            },
+        },
+    },
+    {
+        "name": "audit_get_cost_summary",
+        "description": "Get cost summary by model and action type for a date range.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "brand_id": {"type": "string", "default": ""},
+                "start_date": {"type": "string", "default": ""},
+                "end_date": {"type": "string", "default": ""},
+            },
+        },
+    },
 ]
 
 
 # ─── Tool Handlers ────────────────────────────────────────────
 
 async def handle_analyze_competitor(args):
-    from marketic.gtm.competitive import CompetitiveIntelligence
+    from gtm.competitive import CompetitiveIntelligence
     ci = CompetitiveIntelligence()
     return await ci.analyze_competitor(competitor_name=args["brand"], category=args.get("category", ""))
 
 
 async def handle_compare_competitors(args):
-    from marketic.gtm.competitive import CompetitiveIntelligence
+    from gtm.competitive import CompetitiveIntelligence
     ci = CompetitiveIntelligence()
     return await ci.compare_with_competitors(your_product=args["your_product"], competitors=args["competitors"])
 
 
 async def handle_generate_creatives(args):
-    from marketic.creative.copy_generator import CopyGenerator, AdCopyRequest, AdChannel, AdObjective
+    from creative.copy_generator import CopyGenerator, AdCopyRequest, AdChannel, AdObjective
     gen = CopyGenerator()
     request = AdCopyRequest(
         product_name=args["product_name"],
@@ -467,7 +633,7 @@ async def handle_generate_creatives(args):
 
 
 async def handle_generate_social_posts(args):
-    from marketic.creative.social_generator import SocialGenerator, SocialContentRequest, SocialPlatform, ContentFormat
+    from creative.social_generator import SocialGenerator, SocialContentRequest, SocialPlatform, ContentFormat
     gen = SocialGenerator()
     # Map format string to enum; 'post' -> SINGLE_POST, 'thread' -> THREAD, etc.
     format_str = args.get("format", "post")
@@ -494,7 +660,7 @@ async def handle_generate_social_posts(args):
 
 
 async def handle_generate_seo_content(args):
-    from marketic.creative.seo_generator import SEOGenerator, SEOContentRequest
+    from creative.seo_generator import SEOGenerator, SEOContentRequest
     gen = SEOGenerator()
     keyword = args.get("target_keyword", args.get("keyword", ""))
     request = SEOContentRequest(
@@ -510,7 +676,7 @@ async def handle_generate_seo_content(args):
 
 
 async def handle_build_campaign(args):
-    from marketic.campaign.builder import CampaignBuilder, CampaignObjective
+    from campaign.builder import CampaignBuilder, CampaignObjective
     builder = CampaignBuilder()
     name = args.get("campaign_name", args.get("name", "Untitled Campaign"))
     # Map common objective strings to valid enum values
@@ -552,7 +718,7 @@ async def handle_build_campaign(args):
 
 
 async def handle_optimize_budget(args):
-    from marketic.campaign.budget_router import BudgetRouter
+    from campaign.budget_router import BudgetRouter
     router = BudgetRouter()
     # Build channel_data dict from current_allocation + channel_performance
     current_alloc = args.get("current_allocation", {})
@@ -576,7 +742,7 @@ async def handle_optimize_budget(args):
 
 
 async def handle_analyze_positioning(args):
-    from marketic.gtm.positioning import PositioningAnalyzer
+    from gtm.positioning import PositioningAnalyzer
     analyzer = PositioningAnalyzer()
     brand = args.get("brand", "Unknown")
     product = args.get("product", brand)
@@ -591,7 +757,7 @@ async def handle_analyze_positioning(args):
 
 
 async def handle_collect_signals(args):
-    from marketic.signals.collectors import ProductHuntCollector, TrendsCollector, TwitterCollector, RedditCollector
+    from signals.collectors import ProductHuntCollector, TrendsCollector, TwitterCollector, RedditCollector
     signals = []
     # Map source strings to actual collectors
     source_map = {
@@ -625,7 +791,7 @@ async def handle_collect_signals(args):
 
 
 async def handle_get_attribution(args):
-    from marketic.analytics.attribution import MultiTouchAttribution, AttributionModel, Touchpoint
+    from analytics.attribution import MultiTouchAttribution, AttributionModel, Touchpoint
     import uuid
     mta = MultiTouchAttribution()
     model_map = {"first_touch": AttributionModel.FIRST_TOUCH, "last_touch": AttributionModel.LAST_TOUCH, "linear": AttributionModel.LINEAR, "time_decay": AttributionModel.TIME_DECAY, "position_based": getattr(AttributionModel, "POSITION_BASED", AttributionModel.LINEAR)}
@@ -660,7 +826,7 @@ async def handle_get_attribution(args):
 
 
 async def handle_generate_narrative(args):
-    from marketic.gtm.narrative import NarrativeGenerator
+    from gtm.narrative import NarrativeGenerator
     gen = NarrativeGenerator()
     narrative_type = args.get("narrative_type", "brand_story")
     brand = args.get("brand", "Unknown")
@@ -683,7 +849,7 @@ async def handle_launch_campaign_ad(args):
 
 # Hub handlers
 async def handle_hub_health_check(args):
-    from marketic.integrations.unified_adapter import MarketingHub, create_hub, list_supported_platforms
+    from integrations.unified_adapter import MarketingHub, create_hub, list_supported_platforms
     import os
     platforms = {
         "webengage": {"api_key": os.getenv("WEBENGAGE_API_KEY", ""), "license_code": os.getenv("WEBENGAGE_LICENSE_CODE", "")},
@@ -707,7 +873,7 @@ async def handle_hub_health_check(args):
 
 
 async def handle_hub_broadcast_event(args):
-    from marketic.integrations.unified_adapter import MarketingHub, Event
+    from integrations.unified_adapter import MarketingHub, Event
     import os
     platforms = {
         "webengage": {"api_key": os.getenv("WEBENGAGE_API_KEY", ""), "license_code": os.getenv("WEBENGAGE_LICENSE_CODE", "")},
@@ -730,7 +896,7 @@ async def handle_hub_broadcast_event(args):
 
 
 async def handle_hub_sync_contact(args):
-    from marketic.integrations.unified_adapter import MarketingHub, Contact, ContactStatus
+    from integrations.unified_adapter import MarketingHub, Contact, ContactStatus
     import os
     platforms = {
         "webengage": {"api_key": os.getenv("WEBENGAGE_API_KEY", ""), "license_code": os.getenv("WEBENGAGE_LICENSE_CODE", "")},
@@ -764,7 +930,7 @@ async def handle_hub_sync_contact(args):
 
 
 async def handle_hub_send_campaign(args):
-    from marketic.integrations.unified_adapter import MarketingHub, Campaign, ChannelType, CampaignStatus
+    from integrations.unified_adapter import MarketingHub, Campaign, ChannelType, CampaignStatus
     import os
     platforms = {
         "webengage": {"api_key": os.getenv("WEBENGAGE_API_KEY", ""), "license_code": os.getenv("WEBENGAGE_LICENSE_CODE", "")},
@@ -788,7 +954,7 @@ async def handle_hub_send_campaign(args):
 
 
 async def handle_hub_get_dashboard(args):
-    from marketic.integrations.unified_adapter import MarketingHub
+    from integrations.unified_adapter import MarketingHub
     import os
     platforms = {
         "webengage": {"api_key": os.getenv("WEBENGAGE_API_KEY", ""), "license_code": os.getenv("WEBENGAGE_LICENSE_CODE", "")},
@@ -809,7 +975,7 @@ async def handle_hub_get_dashboard(args):
 
 
 async def handle_hub_search_prospects(args):
-    from marketic.integrations.unified_adapter import ClayAdapter
+    from integrations.unified_adapter import ClayAdapter
     import os
     clay_key = os.getenv("CLAY_API_KEY", "")
     if not clay_key:
@@ -821,7 +987,7 @@ async def handle_hub_search_prospects(args):
 
 
 async def handle_hub_create_segment(args):
-    from marketic.integrations.unified_adapter import MarketingHub, Segment
+    from integrations.unified_adapter import MarketingHub, Segment
     import os
     platforms = {
         "webengage": {"api_key": os.getenv("WEBENGAGE_API_KEY", ""), "license_code": os.getenv("WEBENGAGE_LICENSE_CODE", "")},
@@ -844,7 +1010,7 @@ async def handle_hub_create_segment(args):
 
 
 async def handle_hub_send_transactional(args):
-    from marketic.integrations.unified_adapter import MarketingHub, ChannelType
+    from integrations.unified_adapter import MarketingHub, ChannelType
     import os
     platforms = {
         "webengage": {"api_key": os.getenv("WEBENGAGE_API_KEY", ""), "license_code": os.getenv("WEBENGAGE_LICENSE_CODE", "")},
@@ -868,7 +1034,7 @@ async def handle_hub_send_transactional(args):
 
 
 async def handle_hub_list_platforms(args):
-    from marketic.integrations.unified_adapter import list_supported_platforms, ADAPTER_REGISTRY
+    from integrations.unified_adapter import list_supported_platforms, ADAPTER_REGISTRY
     platforms = list_supported_platforms()
     details = {}
     for name in platforms:
@@ -880,7 +1046,7 @@ async def handle_hub_list_platforms(args):
 
 # CRM handlers
 async def handle_crm_create_lead(args):
-    from marketic.crm import CRMMaster
+    from crm import CRMMaster
     crm = CRMMaster()
     lead = crm.create_lead(email=args["email"], first_name=args.get("first_name", ""), last_name=args.get("last_name", ""), phone=args.get("phone", ""), company=args.get("company", ""), job_title=args.get("job_title", ""), source=args.get("source", "organic"), tags=args.get("tags", []))
     score = crm.score_lead(lead.lead_id)
@@ -888,7 +1054,7 @@ async def handle_crm_create_lead(args):
 
 
 async def handle_crm_create_deal(args):
-    from marketic.crm import CRMMaster, DealStage
+    from crm import CRMMaster, DealStage
     crm = CRMMaster()
     stage_map = {"lead": DealStage.LEAD, "qualified": DealStage.QUALIFIED, "proposal": DealStage.PROPOSAL, "negotiation": DealStage.NEGOTIATION, "closed_won": DealStage.CLOSED_WON, "closed_lost": DealStage.CLOSED_LOST}
     deal = crm.create_deal(name=args["name"], value=args.get("value", 0), stage=stage_map.get(args.get("stage", "lead"), DealStage.LEAD), lead_id=args.get("lead_id", "") or None, owner_id=args.get("owner_id", ""))
@@ -896,7 +1062,7 @@ async def handle_crm_create_deal(args):
 
 
 async def handle_crm_move_deal(args):
-    from marketic.crm import CRMMaster, DealStage
+    from crm import CRMMaster, DealStage
     crm = CRMMaster()
     stage_map = {"lead": DealStage.LEAD, "qualified": DealStage.QUALIFIED, "proposal": DealStage.PROPOSAL, "negotiation": DealStage.NEGOTIATION, "closed_won": DealStage.CLOSED_WON, "closed_lost": DealStage.CLOSED_LOST}
     new_stage = stage_map.get(args["new_stage"])
@@ -909,7 +1075,7 @@ async def handle_crm_move_deal(args):
 
 
 async def handle_crm_log_activity(args):
-    from marketic.crm import CRMMaster, ActivityType
+    from crm import CRMMaster, ActivityType
     crm = CRMMaster()
     type_map = {"call": ActivityType.CALL, "email": ActivityType.EMAIL, "meeting": ActivityType.MEETING, "note": ActivityType.NOTE, "task": ActivityType.TASK, "campaign": ActivityType.CAMPAIGN}
     activity_type = type_map.get(args["activity_type"], ActivityType.NOTE)
@@ -918,26 +1084,26 @@ async def handle_crm_log_activity(args):
 
 
 async def handle_crm_get_dashboard(args):
-    from marketic.crm import CRMMaster
+    from crm import CRMMaster
     crm = CRMMaster()
     return crm.get_crm_dashboard()
 
 
 async def handle_crm_search_leads(args):
-    from marketic.crm import CRMMaster
+    from crm import CRMMaster
     crm = CRMMaster()
     leads = crm.search_leads(args["query"], limit=args.get("limit", 10))
     return {"query": args["query"], "leads": [{"lead_id": l.lead_id, "email": l.email, "name": l.full_name, "company": l.company, "score": l.score} for l in leads], "count": len(leads)}
 
 
 async def handle_crm_get_pipeline(args):
-    from marketic.crm import CRMMaster
+    from crm import CRMMaster
     crm = CRMMaster()
     return crm.get_pipeline_summary()
 
 
 async def handle_crm_get_timeline(args):
-    from marketic.crm import CRMMaster
+    from crm import CRMMaster
     crm = CRMMaster()
     timeline = crm.get_timeline(args["entity_id"])
     return {"entity_id": args["entity_id"], "events": timeline, "count": len(timeline)}
@@ -945,52 +1111,298 @@ async def handle_crm_get_timeline(args):
 
 # UTM & Workflow handlers
 async def handle_build_utm_url(args):
-    from marketic.integrations.unified_adapter import build_utm_url
-    url = build_utm_url(base_url=args["base_url"], source=args["source"], medium=args["medium"], campaign=args["campaign"], content=args.get("content"), term=args.get("term"))
+    from integrations.unified_adapter import build_utm_url
+    url = build_utm_url(
+        base_url=args["base_url"],
+        source=args["source"],
+        medium=args["medium"],
+        campaign=args["campaign"],
+        content=args.get("content"),
+        term=args.get("term")
+    )
     return {"url": url}
 
 
 async def handle_parse_utm_params(args):
-    from marketic.integrations.unified_adapter import parse_utm_params
+    from integrations.unified_adapter import parse_utm_params
     return {"utm_params": parse_utm_params(args["url"])}
 
 
 async def handle_run_workflow(args):
-    from marketic.integrations.unified_adapter import MarketingHub, MarketingWorkflow
+    from integrations.unified_adapter import MarketingHub, MarketingWorkflow
     import os
-    wf = MarketingWorkflow(workflow_id=args["workflow_id"], name=args.get("name", ""))
+    
+    wf = MarketingWorkflow(
+        workflow_id=args["workflow_id"],
+        name=args.get("name", "")
+    )
+    
     for step in args["steps"]:
-        wf.add_step(step_id=step["step_id"], action=step["action"], params=step.get("params", {}), on_success=step.get("on_success"), on_failure=step.get("on_failure"), is_first=(step["step_id"] == args["first_step"]))
+        wf.add_step(
+            step_id=step["step_id"],
+            action=step["action"],
+            params=step.get("params", {}),
+            on_success=step.get("on_success"),
+            on_failure=step.get("on_failure"),
+            is_first=(step["step_id"] == args["first_step"])
+        )
+    
     hub = MarketingHub()
     platforms = {
-        "webengage": {"api_key": os.getenv("WEBENGAGE_API_KEY", ""), "license_code": os.getenv("WEBENGAGE_LICENSE_CODE", "")},
+        "webengage": {
+            "api_key": os.getenv("WEBENGAGE_API_KEY", ""),
+            "license_code": os.getenv("WEBENGAGE_LICENSE_CODE", "")
+        },
         "hubspot": {"api_key": os.getenv("HUBSPOT_API_KEY", "")},
-        "clevertap": {"account_id": os.getenv("CLEVERTAP_ACCOUNT_ID", ""), "passcode": os.getenv("CLEVERTAP_PASSCODE", "")},
-        "braze": {"api_key": os.getenv("BRAZE_API_KEY", ""), "app_id": os.getenv("BRAZE_APP_ID", "")},
+        "clevertap": {
+            "account_id": os.getenv("CLEVERTAP_ACCOUNT_ID", ""),
+            "passcode": os.getenv("CLEVERTAP_PASSCODE", "")
+        },
+        "braze": {
+            "api_key": os.getenv("BRAZE_API_KEY", ""),
+            "app_id": os.getenv("BRAZE_APP_ID", "")
+        },
         "mailchimp": {"api_key": os.getenv("MAILCHIMP_API_KEY", "")},
     }
+    
     for platform, creds in platforms.items():
         if any(creds.values()):
             try:
                 hub.connect(platform, **creds)
-            except Exception:
-                pass
+            except Exception as e:
+                sys.stderr.write(f"[marketic MCP] Hub connect error for {platform}: {e}\n")
+    
     await hub.initialize()
     result = await wf.execute(hub)
-    # Convert result to dict with deep serialization
-    def deep_serialize(obj):
-        if isinstance(obj, dict):
-            return {k: deep_serialize(v) for k, v in obj.items() if not str(k).startswith('_')}
-        elif isinstance(obj, list):
-            return [deep_serialize(item) for item in obj]
-        elif hasattr(obj, 'value'):  # Enum
-            return obj.value
-        elif hasattr(obj, '__dict__'):  # Custom object
-            return {k: deep_serialize(v) for k, v in vars(obj).items() if not str(k).startswith('_')}
-        else:
-            return obj
-    serialized = deep_serialize(result)
-    return serialized
+    # Use shared _serialize helper
+    return _serialize(result)
+
+
+# Ensemble & Audit handlers
+async def handle_ensemble_vote(args):
+    from ensemble.voting import EnsembleVoter
+    voter = EnsembleVoter()
+    vote = voter.vote(
+        task_type=args["task_type"],
+        prompt=args["prompt"],
+        context=args.get("context", {}),
+        models=args.get("models"),
+    )
+    return {
+        "decision": vote.decision,
+        "confidence": vote.confidence,
+        "models_used": vote.models_used,
+        "reasoning_chain": vote.reasoning_chain,
+        "cost": vote.cost,
+        "consensus": vote.consensus,
+    }
+
+
+async def handle_audit_log(args):
+    from ensemble.audit_trail import AuditLogger
+    logger = AuditLogger()
+    audit_id = logger.log_action(
+        action=args["action"],
+        model=args.get("model", ""),
+        input_tokens=args.get("input_tokens", 0),
+        output_tokens=args.get("output_tokens", 0),
+        cost=args.get("cost", 0.0),
+        confidence=args.get("confidence", 0.0),
+        reasoning_chain=args.get("reasoning_chain", []),
+        result_summary=args.get("result_summary", ""),
+        human_approved=args.get("human_approved"),
+        brand_id=args.get("brand_id", ""),
+        metadata=args.get("metadata", {}),
+    )
+    return {"audit_id": audit_id, "status": "logged"}
+
+
+async def handle_audit_get_log(args):
+    from ensemble.audit_trail import AuditLogger
+    logger = AuditLogger()
+    entries = logger.get_audit_log(
+        brand_id=args.get("brand_id", "") or None,
+        action=args.get("action", "") or None,
+        start_date=args.get("start_date", "") or None,
+        end_date=args.get("end_date", "") or None,
+        limit=args.get("limit", 100),
+    )
+    return {
+        "entries": [
+            {
+                "id": e.id,
+                "timestamp": e.timestamp,
+                "brand_id": e.brand_id,
+                "action": e.action,
+                "model": e.model,
+                "cost": e.cost,
+                "confidence": e.confidence,
+                "human_approved": e.human_approved,
+                "result_summary": e.result_summary,
+            }
+            for e in entries
+        ],
+        "count": len(entries),
+    }
+
+
+async def handle_audit_get_cost_summary(args):
+    from ensemble.audit_trail import AuditLogger
+    logger = AuditLogger()
+    summary = logger.get_cost_summary(
+        brand_id=args.get("brand_id", "") or None,
+        start_date=args.get("start_date", "") or None,
+        end_date=args.get("end_date", "") or None,
+    )
+    return summary
+
+
+# Brief & Signal handlers
+async def handle_generate_brief(args):
+    from execution.brief import generate_brief
+    return generate_brief(
+        campaign_name=args["campaign_name"],
+        objective=args["objective"],
+        product_name=args["product_name"],
+        product_description=args["product_description"],
+        target_audience=args.get("target_audience", ""),
+        channels=args.get("channels"),
+        total_budget=args.get("total_budget", 10000),
+        duration_weeks=args.get("duration_weeks", 4),
+        key_benefits=args.get("key_benefits"),
+        brand_tokens=args.get("brand_tokens"),
+        channel_performance=args.get("channel_performance"),
+        positioning_summary=args.get("positioning_summary", ""),
+        competitor_insights=args.get("competitor_insights", ""),
+    )
+
+
+async def handle_run_prospect_loop(args):
+    """Signal-driven prospect discovery -> enrichment -> outreach drafts -> CRM."""
+    from crm.prospect_loop import ProspectLoop
+    loop = ProspectLoop()
+    return await loop.run(
+        niche_query=args.get("niche_query", ""),
+        market_query=args.get("market_query", ""),
+        limit=int(args.get("limit", 5)),
+    )
+
+
+async def handle_distill_learnings(args):
+    """Promote recurring audit-trail patterns into brand learnings + brain md export."""
+    from ensemble.learnings import LearningEngine
+    engine = LearningEngine()
+    if args.get("capture_rule"):
+        engine.capture(
+            brand=args.get("brand", "default"),
+            category=args.get("category", "general"),
+            rule_text=args["capture_rule"],
+            confidence=float(args.get("confidence", 0.5)),
+        )
+        return {"captured": args["capture_rule"]}
+    found = engine.distill(min_occurrences=int(args.get("min_occurrences", 3)))
+    path = None
+    if args.get("export_brain", True) and (args.get("brand") or "default"):
+        path = engine.export_brain_md(args.get("brand", "default"))
+    return {"distilled": len(found), "brain_path": path,
+            "learnings": [{"rule": l.get("rule_text"), "seen": l.get("occurrences")}
+                          for l in (found or [])][:10]}
+
+
+async def handle_search_fb_ads(args):
+    """Search Facebook Ads Library for real competitor creatives/copy (ground truth)."""
+    try:
+        from gtm.fb_ads_library import FBAdsLibraryClient
+    except ImportError:
+        return {"error": "fb_ads_library module unavailable"}
+    client = FBAdsLibraryClient()
+    if not client.is_available():
+        return {"error": "FB_ACCESS_TOKEN not set — ads library backend unavailable",
+                "hint": "set FB_ACCESS_TOKEN env var (Meta developer token)"}
+    return {"ads": client.search_ads(args.get("brand_name", ""),
+                                    country=args.get("country", "ALL"),
+                                    limit=int(args.get("limit", 20)))}
+
+
+async def handle_ask_marketic(args):
+    """
+    Master router: one entry point that routes a natural-language marketing
+    question to the right specialist tool(s) and returns combined results.
+    Pattern borrowed from skill-suites' agency agent (council rec #9).
+    """
+    q = (args.get("question") or "").lower()
+    route_table = [
+        (["prospect", "leads", "find people", "outreach", "email list"], "run_prospect_loop"),
+        (["what did we learn", "learnings", "lessons", "brain", "patterns"], "distill_learnings"),
+        # fb-ads routes must come BEFORE analyze_competitor_ad so "facebook ads"
+        # / "ads library" don't collide with the generic ad-analysis keywords.
+        (["facebook ads", "fb ads", "ads library", "real ads", "spend data"], "search_fb_ads"),
+        (["competitor ad", "deconstruct", "hook", "their ads", "ad analysis"], "analyze_competitor_ad"),
+        (["budget", "allocate", "spend", "split"], "optimize_budget"),
+        (["campaign", "launch", "funnel"], "build_campaign"),
+        (["signal", "trend", "moving", "market news", "buzz"], "signal_fanout"),
+        (["positioning", "differentiate", "wedge"], "analyze_positioning"),
+        (["narrative", "story", "messaging"], "generate_narrative"),
+        (["seo", "keyword", "rank"], "generate_seo_content"),
+        (["social post", "instagram", "linkedin", "tweet"], "generate_social_posts"),
+        (["brief", "handoff", "execution plan"], "generate_brief"),
+        (["attribution", "which channel", "credit"], "get_attribution"),
+        (["lead", "deal", "pipeline", "crm"], "crm_dashboard"),
+        (["cost", "spend on ai", "audit"], "audit_get_cost_summary"),
+    ]
+    routed, matched = [], set()
+    for keywords, tool in route_table:
+        if any(k in q for k in keywords) and tool not in matched:
+            if tool in HANDLERS:
+                routed.append(tool)
+                matched.add(tool)
+    if args.get("route_only"):
+        return {"question": q, "routed_tools": routed}
+    if not routed:
+        return {"question": q, "error": "no matching tool",
+                "hint": "try mentioning signals/budget/campaign/competitor/seo/social/brief"}
+    # execute the primary match; pass through any supplied arguments
+    primary = routed[0]
+    result = await HANDLERS[primary](args.get("arguments", {}))
+    return {"question": q, "routed_to": routed, "primary_result": result}
+
+
+async def handle_signal_fanout(args):
+    from signals.collectors import SignalFanout
+    fanout = SignalFanout()
+    return await fanout.run(
+        query=args.get("query", ""),
+        sources=args.get("sources") or None,
+        limit_per_source=args.get("limit_per_source", 25),
+    )
+
+
+async def handle_analyze_competitor_ad(args):
+    try:
+        from gtm.ad_analysis import AdAnalyzer
+    except ImportError:
+        from gtm.ad_analysis import AdAnalyzer
+    analyzer = AdAnalyzer()
+
+    def _ser(b):
+        d = asdict(b) if hasattr(b, "__dataclass_fields__") else b.__dict__
+        return d
+
+    if args.get("batch"):
+        breakdowns = analyzer.analyze_batch(args["batch"])
+        if args.get("derive"):
+            return analyzer.derive_counter_brief(breakdowns)
+        return {"breakdowns": [_ser(b) for b in breakdowns], "count": len(breakdowns)}
+
+    b = analyzer.analyze(
+        image_path_or_url=args.get("image_path_or_url", ""),
+        transcript=args.get("transcript", ""),
+        caption=args.get("caption", ""),
+    )
+    result = _ser(b)
+    if args.get("derive"):
+        return {"counter_brief": analyzer.derive_counter_brief([b]), "breakdown": result}
+    return result
 
 
 # ─── Handler Registry ─────────────────────────────────────────
@@ -1028,6 +1440,17 @@ HANDLERS = {
     "build_utm_url": handle_build_utm_url,
     "parse_utm_params": handle_parse_utm_params,
     "run_workflow": handle_run_workflow,
+    "ensemble_vote": handle_ensemble_vote,
+    "audit_log": handle_audit_log,
+    "audit_get_log": handle_audit_get_log,
+    "audit_get_cost_summary": handle_audit_get_cost_summary,
+    "generate_brief": handle_generate_brief,
+    "signal_fanout": handle_signal_fanout,
+    "ask_marketic": handle_ask_marketic,
+    "run_prospect_loop": handle_run_prospect_loop,
+    "distill_learnings": handle_distill_learnings,
+    "search_fb_ads": handle_search_fb_ads,
+    "analyze_competitor_ad": handle_analyze_competitor_ad,
 }
 
 
@@ -1101,7 +1524,8 @@ class MCPServer:
                 return None
             try:
                 result = asyncio.run(handler(tool_args))
-                self.send({"jsonrpc": "2.0", "id": msg_id, "result": {"content": [{"type": "text", "text": json.dumps(result)}]}})
+                serialized = _serialize(result)
+                self.send({"jsonrpc": "2.0", "id": msg_id, "result": {"content": [{"type": "text", "text": json.dumps(serialized)}]}})
             except Exception as e:
                 sys.stderr.write(f"[marketic MCP] Tool {tool_name} error: {e}\n")
                 self.send({"jsonrpc": "2.0", "id": msg_id, "error": {"code": -32603, "message": str(e)}})

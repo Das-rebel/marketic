@@ -44,7 +44,7 @@ All decisions are traceable through an audit trail.
 | **Ensemble AI Voting** | Multiple models compare responses; cost tracked per execution; audit trail logged |
 | **Margin-Aware Budgeting** | Optimizes `roas × contribution_margin` — not vanity ROAS |
 | **Brand-as-Data Engine** | Templates use `{{brand.primary}}` etc. — zero hardcoded colors; swap brand by changing tokens |
-| **MCP Server (39 tools)** | Full toolset exposed via stdio JSON-RPC; connects to Claude, Cursor, any MCP client |
+| **MCP Server (43 tools)** | Full toolset exposed via stdio JSON-RPC; connects to Claude, Cursor, any MCP client |
 | **Execution Brief Handoff** | Structured JSON: positioning + copy + budget + timeline + resolved brand tokens |
 | **Audit Trail** | Every AI decision logged: model, cost, confidence, reasoning chain |
 | **Multi-Brand / Multi-Scale** | One codebase serves unlimited brands; scales from $500/mo to $50K/mo+ |
@@ -105,7 +105,7 @@ Paste into:
 - **Cursor**: `.cursor/mcp.json` in your workspace
 - **Any MCP client**: same shape — command + args over stdio
 
-### Key MCP Tools (39 total)
+### Key MCP Tools (43 total)
 
 | Category | Tool | Purpose |
 |---|---|---|
@@ -116,9 +116,11 @@ Paste into:
 | **Brief** | `generate_brief` | Self-contained JSON for execution agents |
 | **Analytics** | `get_attribution` | 5-model comparison |
 | **CRM** | `add_lead`, `get_deals`, `update_lead` | Lead/pipeline management |
-| **AI Ops** | `ensemble_vote`, `audit_log`, `get_cost_summary` | Voting + transparency |
+| **Intelligence** | `run_prospect_loop` | Signal-driven prospect discovery + outreach list generation |
+| **GTM** | `search_fb_ads` | Real Facebook Ads Library search: live competitor spend data |
+| **AI Ops** | `ensemble_vote`, `audit_log`, `get_cost_summary`, `distill_learnings` | Voting + transparency + cross-run pattern learning |
 
-> **MCP integration**: Drop `marketic/mcp_server.py` into any MCP-compatible client (Claude, Cursor, custom). All 39 tools use the same stdio interface.
+> **MCP integration**: Drop `marketic/mcp_server.py` into any MCP-compatible client (Claude, Cursor, custom). All 43 tools use the same stdio interface.
 
 ---
 
@@ -137,7 +139,7 @@ Paste into:
 ## Why Startups Choose Marketic
 
 - **No marketing expert needed** — the platform does the signal→brief translation
-- **$0 to start** — core 39 tools work with free local LLMs (Ollama, ox-alpha)
+- **$0 to start** — core 43 tools work with free local LLMs (Ollama, ox-alpha)
 - **Pay-as-you-grow** — only pay for enrichment APIs when needed
 - **Investor-ready audit** — every decision logged with model, cost, reasoning
 - **Ship fast** — `pip install -e .` + `python3 daily_briefing.py` gets you a briefing in 60 seconds

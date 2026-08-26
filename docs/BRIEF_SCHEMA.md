@@ -71,6 +71,34 @@ Behavioral rules the agent agrees to by consuming the brief.
 
 ---
 
+## Optional fields (additive, v1.x)
+
+These keys appear only when the corresponding optional inputs were provided
+to `generate_brief`. Absent otherwise — consumers must treat them as optional.
+
+### `evidence_chain`
+Present when `source_signals` was passed. Documents which signals/intel
+informed the brief. Agents MUST NOT remove or fabricate entries (also
+enforced via `execution_contract.must_not`).
+
+| Field | Type | Notes |
+|---|---|---|
+| `signal_count` | int | Total number of source signals |
+| `top_signals` | `{title: string, source: string, score: number\|null}[]` | Top 5 signals by provided order |
+| `generated_from` | string | Provenance tag, currently `"marketic signal fan-out"` |
+
+### `brand_rules`
+Present when `brand` was passed AND approved/high-confidence learnings exist
+for it (status `approved` or confidence >= 0.7), max 10 rules ordered by
+occurrences. Advisory — agents SHOULD obey these learned brand constraints.
+
+| Field | Type | Notes |
+|---|---|---|
+| `rule` | string | Learned rule text (e.g. "never use exclamation marks in captions") |
+| `category` | string | e.g. `cost`, `quality`, `strategy` |
+
+---
+
 ## Versioning policy
 
 | Change | Version bump |

@@ -1,6 +1,6 @@
 # Marketic MCP Server
 
-> **32 marketing intelligence tools** exposed via the Model Context Protocol (MCP) for AI coding assistants.
+> **43 marketing intelligence tools** exposed via the Model Context Protocol (MCP) for AI coding assistants.
 
 [![npm version](https://img.shields.io/npm/v/marketic-mcp)](https://www.npmjs.com/package/marketic-mcp)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -35,7 +35,7 @@ marketic-mcp
 echo '{"jsonrpc":"2.0","method":"tools/call","params":{"name":"analyze_competitor","arguments":{"brand":"HubSpot","category":"marketing automation"}},"id":1}' | python3 mcp_server.py
 ```
 
-## MCP Tools (32 total)
+## MCP Tools (43 total)
 
 | Category | Tools |
 |----------|-------|

@@ -1332,6 +1332,11 @@ async def handle_ask_marketic(args):
     """
     q = (args.get("question") or "").lower()
     route_table = [
+        (["prospect", "leads", "find people", "outreach", "email list"], "run_prospect_loop"),
+        (["what did we learn", "learnings", "lessons", "brain", "patterns"], "distill_learnings"),
+        # fb-ads routes must come BEFORE analyze_competitor_ad so "facebook ads"
+        # / "ads library" don't collide with the generic ad-analysis keywords.
+        (["facebook ads", "fb ads", "ads library", "real ads", "spend data"], "search_fb_ads"),
         (["competitor ad", "deconstruct", "hook", "their ads", "ad analysis"], "analyze_competitor_ad"),
         (["budget", "allocate", "spend", "split"], "optimize_budget"),
         (["campaign", "launch", "funnel"], "build_campaign"),

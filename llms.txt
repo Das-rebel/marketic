@@ -1,6 +1,6 @@
 # Marketic
 
-> White-label marketing strategy brain: probability-calibrated market signals, ensemble AI voting with full audit trails, margin-aware budgets, and self-contained briefs that execution agents consume without calling back. Exposed as an MCP server with 39 tools.
+> White-label marketing strategy brain: probability-calibrated market signals, ensemble AI voting with full audit trails, margin-aware budgets, and self-contained briefs that execution agents consume without calling back. Exposed as an MCP server with 43 tools.
 
 Core claim: signals are scored `volume × P(YES)` because 73.4% of Polymarket markets resolve No — raw volume overweights drama. Budgets optimize `roas × contribution_margin`, not vanity ROAS. Every AI decision is logged with model, cost, confidence, and reasoning chain.
 
@@ -20,6 +20,9 @@ python3 daily_briefing.py "your topic"
 - [ensemble/audit_trail.py](ensemble/audit_trail.py): SQLite audit log per AI decision
 - [campaign/budget_router.py](campaign/budget_router.py): margin-adjusted budget allocation
 - [gtm/ad_analysis.py](gtm/ad_analysis.py): VLM competitor ad deconstruction (local Ollama → cloud → heuristics)
+- [crm/prospect_loop.py](crm/prospect_loop.py): signal-driven CRM prospect loop with dedup-safe lead creation
+- [ensemble/learnings.py](ensemble/learnings.py): LearningEngine — distills cross-run patterns into brain/<brand>.md
+- [gtm/fb_ads_library.py](gtm/fb_ads_library.py): Facebook Ads Library search backend for real ad spend data
 - [execution/brief.py](execution/brief.py): generate_brief — the agent handoff artifact
 - [execution/design_templates.py](execution/design_templates.py): BrandTokens — brand identity as data
 
@@ -29,5 +32,5 @@ python3 daily_briefing.py "your topic"
 
 ## Reference
 
-- [API_DOCUMENTATION.md](API_DOCUMENTATION.md): all 39 MCP tools
+- [API_DOCUMENTATION.md](API_DOCUMENTATION.md): all 43 MCP tools
 - [docs/COUNCIL_REVIEW.md](docs/COUNCIL_REVIEW.md): architecture review vs comparable repos
