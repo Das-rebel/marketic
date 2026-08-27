@@ -1,0 +1,25 @@
+╔══════════════════════════════════════════════════════════════╗
+║                      MARKETIC — THE FLOW                     ║
+╠══════════════════════════════════════════════════════════════╣
+║                                                               ║
+║   ┌─────────────┐      ┌─────────────┐      ┌───────────┐ ║
+║   │   SENSE     │      │    THINK    │      │  HANDOFF  │ ║
+║   │             │      │             │      │           │ ║
+║   │ Polymarket  │      │ Ensemble AI │      │  Brief    │ ║
+║   │ Google      │ ───▶ │ Scorecard   │ ───▶ │  (JSON)   │ ║
+║   │ Trends IN   │      │ Budget      │      │           │ ║
+║   │ HN / Reddit │      │ Router      │      │  Brand    │ ║
+║   │ X / YouTube │      │ Ad Analyzer │      │  Tokens   │ ║
+║   │ Indian RSS  │      │ Prospect    │      │           │ ║
+║   │ FB Ads Lib  │      │ Scout       │      │  Posting  │ ║
+║   └─────────────┘      └─────────────┘      │  Windows  │ ║
+║          │                   │              └─────┬─────┘ ║
+║          │                   │                    │       ║
+║          ▼                   ▼                    ▼       ║
+║   ┌─────────────────────────────────────────────────────┐ ║
+║   │                      LEARN                          │ ║
+║   │   Audit Trail  →  Distillation  →  Brand Brain   │ ║
+║   │   (every decision logged)   (patterns)  (markdown)│ ║
+║   └─────────────────────────────────────────────────────┘ ║
+║                                                               ║
+╚══════════════════════════════════════════════════════════════╝

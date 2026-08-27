@@ -1,0 +1,42 @@
+╔══════════════════════════════════════════════════════════════╗
+║           MARKETIC DAILY BRIEFING — 2026-08-27           ║
+╠══════════════════════════════════════════════════════════════╣
+║                                                               ║
+║  GOOD MORNING. HERE IS WHAT MATTERS TODAY.                ║
+║                                                               ║
+║  ── TOP SIGNALS ─────────────────────────────────────     ║
+║                                                               ║
+║  ① Kraken IPO buzz                                         ║
+║     $1.6M bet · 15% probability · Effective: $240K          ║
+║     SOURCE: Polymarket  ·  SCORE: 72/100                   ║
+║     ACTION: Ride this narrative in fintech content this week ║
+║                                                               ║
+║  ② UK election called                                      ║
+║     $822K bet · 31% probability · Effective: $255K          ║
+║     SOURCE: Polymarket  ·  SCORE: 81/100                   ║
+║     ACTION: Strong signal — angle: UK fintech regulation    ║
+║                                                               ║
+║  ③ D2C skincare conversation (India)                       ║
+║     Rising Google searches: 'sabse acha moisturizer'         ║
+║     SOURCE: Google Trends IN  ·  SCORE: 68/100            ║
+║     ACTION: Publish skincare content before the spike peaks  ║
+║                                                               ║
+║  ── IGNORE ───────────────────────────────────────────     ║
+║  ⚠ Macron out speculation  $2.1M / 4%  · Drama, not signal ║
+║     Probability-adjusted: $84K effective · SCORE: 18/100    ║
+║                                                               ║
+║  ── BUDGET ───────────────────────────────────────────     ║
+║  Recommended split: Email $8,908 · Paid Social $6,092      ║
+║  Reasoning: Email 85% margin vs Paid Social 15% margin      ║
+║  (Margin-adjusted, not vanity-ROAS)                        ║
+║                                                               ║
+║  ── COMPETITOR ALERT ─────────────────────────────────     ║
+║  Brand X launched new ad: 'Skin that survives Delhi heat'   ║
+║  Hook: survival · CTA: shop now · Counter-angle: clinical   ║
+║                                                               ║
+║  ── CALIBRATION ─────────────────────────────────────     ║
+║  Tracked: 47  ·  Resolved: 12  ·  Brier: 0.14           ║
+║  Polymarket signals well-calibrated (Brier 0.09, n=8)     ║
+║  Twitter signals need more data (Brier 0.31, n=22)        ║
+║                                                               ║
+╚══════════════════════════════════════════════════════════════╝
