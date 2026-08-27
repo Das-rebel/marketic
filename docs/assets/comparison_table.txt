@@ -1,0 +1,26 @@
+```
+TIME SPENT ON MONDAY MORNING
+====================================================
+ Task                  Before        With Marketic
+----------------------------------------------------
+ Finding signals        45 min    →     5 min
+ Competitor research    60 min    →    10 min
+ Building the brief     40 min    →     5 min
+ Budget analysis        30 min    →     5 min
+----------------------------------------------------
+ TOTAL                175 min    →    25 min     (-86%)
+ TIME SAVED PER WEEK:   3.2 hours
+====================================================
+
+DECISIONS INFORMED PER DAY
+----------------------------------------------------
+                Before    With Marketic
+ Monday           2-3         4-5
+ Tuesday          1-2         2-3
+ Wednesday        2-3         3-4
+ Thursday         3-4         5-6
+ Friday           1-2         2-3
+----------------------------------------------------
+ Weekly avg        9          17         (+89%)
+====================================================
+```

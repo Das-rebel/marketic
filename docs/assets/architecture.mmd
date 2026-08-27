@@ -1,0 +1,60 @@
+```mermaid
+flowchart LR
+    subgraph SENSE["📡 SENSE"]
+        P[Polymarket]
+        G[Google Trends]
+        H[Hacker News]
+        R[Reddit]
+        X[X / Twitter]
+        Y[YouTube]
+        I[Indian RSS]
+        F[FB Ads Library]
+    end
+
+    subgraph THINK["🧠 THINK"]
+        EA[Ensemble AI]
+        SC[Scorecard]
+        BR[Budget Router]
+        AA[Ad Analyzer]
+        PS[Prospect Scout]
+    end
+
+    subgraph HANDOFF["📋 HANDOFF"]
+        BF[Brief JSON]
+        BT[Brand Tokens]
+        PW[Posting Windows]
+    end
+
+    subgraph LEARN["🔄 LEARN"]
+        AT[Audit Trail]
+        DS[Distillation]
+        BB[Brand Brain]
+    end
+
+    SENSE -->|"volume × P(YES)"| THINK
+    SENSE -->|"all signals"| SC
+    THINK -->|"scored signals"| EA
+    EA -->|"reasoned"| BR
+    EA -->|"ad insights"| AA
+    EA -->|"prospects"| PS
+    BR -->|"budget split"| BF
+    AA -->|"counter-angles"| BF
+    PS -->|"enriched leads"| BF
+    BF -->|"handoff"| HANDOFF
+    BT --> HANDOFF
+    PW --> HANDOFF
+    HANDOFF -->|"execute"| AT
+    AT -->|"patterns"| DS
+    DS -->|"approved rules"| BB
+    BB -->|"inject"| THINK
+
+    classDef sense fill:#6366f1,color:#fff,stroke:none
+    classDef think fill:#f59e0b,color:#fff,stroke:none
+    classDef handoff fill:#22c55e,color:#fff,stroke:none
+    classDef learn fill:#f43f5e,color:#fff,stroke:none
+
+    class P,G,H,R,X,Y,I,F sense
+    class EA,SC,BR,AA,PS think
+    class BF,BT,PW handoff
+    class AT,DS,BB learn
+```

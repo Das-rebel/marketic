@@ -1,0 +1,68 @@
+```mermaid
+flowchart TB
+    subgraph GTM["🎯 GTM & Intel (20 tools)"]
+        A1[search_fb_ads]
+        A2[analyze_competitor_ad]
+        A3[analyze_competitor]
+        A4[analyze_positioning]
+        A5[breakdown_ad]
+        A6[generate_narrative]
+        A7[discover_prospects]
+        A8[signal_fanout]
+        A9[collect_signals]
+    end
+
+    subgraph CORE["⚙️ Core (12 tools)"]
+        B1[generate_creatives]
+        B2[generate_social_posts]
+        B3[generate_seo_content]
+        B4[build_campaign]
+        B5[optimize_budget]
+        B6[launch_campaign_ad]
+        B7[generate_brief]
+        B8[run_prospect_loop]
+        B9[distill_learnings]
+        B10[ask_marketic]
+        B11[run_workflow]
+        B12[...]
+    end
+
+    subgraph DATA["📊 Data & Learning (13 tools)"]
+        C1[track_signal]
+        C2[get_calibration_report]
+        C3[resolve_signal]
+        C4[ensemble_vote]
+        C5[audit_log]
+        C6[audit_get_log]
+        C7[get_cost_summary]
+        C8[get_attribution]
+        C9[crm_*]
+        C10[crm_*]
+        C11[crm_*]
+        C12[crm_*]
+        C13[crm_*]
+    end
+
+    subgraph PUB["🚀 Publishing & UGC (10 tools)"]
+        D1[schedule_content]
+        D2[get_upcoming_posts]
+        D3[optimize_hashtags]
+        D4[curate_ugc]
+        D5[request_ugc_permission]
+        D6[track_ugc]
+        D7[render_template]
+        D8[hub_*]
+        D9[build_utm_url]
+        D10[parse_utm_params]
+    end
+
+    classDef gtm fill:#6366f1,color:#fff,stroke:none
+    classDef core fill:#f59e0b,color:#fff,stroke:none
+    classDef data fill:#22c55e,color:#fff,stroke:none
+    classDef pub fill:#f43f5e,color:#fff,stroke:none
+
+    class A1,A2,A3,A4,A5,A6,A7,A8,A9 GTM
+    class B1,B2,B3,B4,B5,B6,B7,B8,B9,B10,B11,B12 CORE
+    class C1,C2,C3,C4,C5,C6,C7,C8,C9,C10,C11,C12,C13 DATA
+    class D1,D2,D3,D4,D5,D6,D7,D8,D9,D10 PUB
+```

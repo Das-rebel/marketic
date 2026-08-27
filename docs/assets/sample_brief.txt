@@ -1,0 +1,37 @@
+```
++=========================================================================+
+|  MARKETIC BRIEF — GlowSkincare India · Generated 2026-08-27        |
++=========================================================================+
+|  SIGNAL SUMMARY                    |  BUDGET ALLOCATION               |
+|  -------------------------------  |  ------------------------------  |
+|  ① Kraken IPO buzz  SCORE 72     |  Email    $9,200  60%            |
+|     $1.6M bet · 15% probability   |  (margin: 85%)                   |
+|  ② D2C skincare IN   SCORE 68     |  Social   $6,100  40%            |
+|     Rising Google searches          |  (margin: 15%)                   |
+|  ③ Shark Tank India  SCORE 61     |                                  |
+|     3x mentions wk/wk              |                                  |
+|  -------------------------------  |                                  |
+|  ⚠ IGNORED: Crypto $4M / 6%     |                                  |
+|  (noise, probability-adjusted)      |                                  |
++=========================================================================+
+|  COMPETITOR INTEL — Brand X "Skin that survives Delhi heat"          |
+|  ----------------------------------------------------------------     |
+|  Running since Aug 20 · Est. spend $12-18K/wk                       |
+|  Hook: survival · Offer: heat-proof · CTA: shop now                 |
+|  Counter-angles:                                                     |
+|    ① Clinical vs DIY: "Derms agree: $47 gel > $300 AC"            |
+|    ② Speed: "Results in 14 days or money back"                     |
+|    ③ Transparency: "We list every active ingredient"                |
++=========================================================================+
+|  COPY VARIANTS                     |  POSTING WINDOWS (India)         |
+|  -------------------------------  |  ------------------------------  |
+|  A: "Your skin deserves clinical  |  7:00-9:00 AM                   |
+|     -grade care"                 |  12:00-1:00 PM                  |
+|  B: "Dermatologist-approved.      |  7:00-9:00 PM                   |
+|     Now in India."                |                                  |
+|  C: "Skincare that actually works |                                  |
+|     in Delhi heat"               |                                  |
+|  -------------------------------  |                                  |
+|  BRAND TOKENS: #6D0000 · DM Sans · @glowskinofficial               |
++=========================================================================+
+```

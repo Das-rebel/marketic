@@ -1,0 +1,51 @@
+```
+╔══════════════════════════════════════════════════════════════╗
+║             YOUR MONDAY WITHOUT MARKETIC                     ║
+╚══════════════════════════════════════════════════════════════╝
+
+  7:45 AM  Wake up. Coffee. Open laptop.
+
+  8:00 AM  Open 7 browser tabs:
+
+              +-------------------------------------+
+              |  Google Trends    "what's trending?"  |
+              |  Competitor ads   "what launched?"    |
+              |  Mixpanel        "why did last wk drop?"|
+              |  LinkedIn        "what's everyone saying?"|
+              |  Slack #mktg   "did anyone reply?"     |
+              |  Email to analyst "can you pull..."     |
+              |  HubSpot        "which lead converted?"  |
+              +-------------------------------------+
+
+  9:30 AM  Still don't know what actually matters today.
+
+  10:00 AM Stand-up. Wing it.
+
+
+╔══════════════════════════════════════════════════════════════╗
+║             YOUR MONDAY WITH MARKETIC                       ║
+╚══════════════════════════════════════════════════════════════╝
+
+  7:58 AM  Notification: "Your briefing is ready"
+
+  8:00 AM  Read 6 sentences:
+
+              +-----------------------------------------+
+              |  ① Kraken IPO buzz ($1.6M, 15% likely)  |
+              |     → Ride this in fintech content today    |
+              |  ② D2C skincare India rising (Google IN)  |
+              |     → Publish before the spike peaks        |
+              |  ③ Shark Tank India: 3x mentions wk/wk   |
+              |     → "As seen on Shark Tank" angle        |
+              |  ⚠ IGNORED: Crypto drama ($4M, 6% likely)|
+              |     → Probability-adjusted out of the brief  |
+              |  📊 Budget: Email $9,200 · Social $5,800  |
+              |     → Email margin 85% > Social 15%        |
+              |  🤖 Competitor X: new ad live since Tue    |
+              |     → Counter-angle: clinical vs DIY       |
+              +-----------------------------------------+
+
+  8:07 AM  Coffee. Done.
+
+  8:08 AM  Start the actual work.
+```
