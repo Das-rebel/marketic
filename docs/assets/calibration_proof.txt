@@ -1,0 +1,21 @@
+
+    SIGNAL CALIBRATION — Last 30 Days
+    ═════════════════════════════════════════
+
+    Source          Signals  Brier   Verdict
+    ─────────────────────────────────────────
+    Polymarket          12   0.09   ✅ Well-calibrated
+    Google Trends        8   0.14   ✅ Reliable
+    Hacker News          6   0.21   ⚠️ Uncertain
+    Reddit               9   0.28   ⚠️ Needs data
+    Twitter/X           14   0.31   ⚠️ Needs data
+    Product Hunt        5   0.24   ⚠️ Needs data
+    ─────────────────────────────────────────
+    Overall             54   0.19   📊 Honest
+    Random baseline     —   0.25   ──────────
+
+    What this means: Polymarket signals are RIGHT 9 times out of 10.
+    Twitter signals need 3 more weeks of data before we trust them.
+    This is the first marketing tool that shows you its own uncertainty.
+
+    Brier score: 0.00 = perfect · 0.25 = random · Higher = worse

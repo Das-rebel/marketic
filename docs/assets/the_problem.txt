@@ -1,0 +1,41 @@
+
+    YOUR MONDAY MORNING (without Marketic)
+    ──────────────────────────────────────
+
+    7:45 AM  ☕ Wake up
+                 │
+    8:00 AM  📊 Open 7 browser tabs:
+                 ├── Google Trends (what did I miss?)
+                 ├── Competitor's last 20 ads (where?)
+                 ├── Mixpanel (why did last week drop?)
+                 ├── LinkedIn (what's everyone talking about?)
+                 ├── Slack #marketing (did anyone answer?)
+                 ├── Email to analyst (still waiting for reply)
+                 └── HubSpot (which lead actually converted?)
+
+    9:30 AM  😤 Still don't know what matters
+                 │
+    10:00 AM ⏰ Meeting. Wing it.
+
+    ──────────────────────────────────────────────────────────
+
+    YOUR MONDAY MORNING (with Marketic)
+    ──────────────────────────────────────
+
+    7:58 AM  📱 Notification: 'Briefing ready'
+                 │
+    8:00 AM  ✅ Read 6-sentence brief:
+                 ├── Top signal: Kraken IPO buzz ($1.6M, 15% likely)
+                 ├── Ignore: Macron speculation (noise, 4%)
+                 ├── Budget: Email wins on margin (85% vs 15%)
+                 ├── Competitor X launched new ad — counter-angle ready
+                 └── Pipeline: 3 hot leads, call Priority #2 today
+
+    8:07 AM  ☕ Coffee. You're done.
+                 │
+    8:08 AM  🎯 Start the actual work.
+
+
+    THE BRIEFING THAT DIDN'T EXIST YESTERDAY
+    Generated 2026-08-27 · 6 sources · 4 decisions
+    Marketic — your marketing nervous system

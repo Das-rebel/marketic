@@ -1,0 +1,50 @@
+
+    ┌─────────────────────────────────────────────────────┐
+    │ 1. THE SIGNAL BRIEF (8:00 AM)                     │
+    │ Generated from 6 sources in 47 seconds             │
+    │                                                     │
+    │ TOP 3 SIGNALS                                      │
+    │ ① Kraken IPO — $1.6M bet · 15% odds · SCORE 72  │
+    │   → Ride fintech narrative this week               │
+    │ ② D2C skincare (India) — Rising in Google IN     │
+    │   → Publish before spike peaks · 5-day window      │
+    │ ③ Shark Tank India buzz — 3x mentions week-over-week│
+    │   → Angle: 'as seen on Shark Tank' trust signal   │
+    │                                                     │
+    │ ⚠️ IGNORED: Crypto crash talk ($4M volume, 6% odds)│
+    │   → Drama, not signal — filtered by calibration     │
+    └─────────────────────────────────────────────────────┘
+
+    ┌─────────────────────────────────────────────────────┐
+    │ 2. THE CAMPAIGN BRIEF (2:00 PM)                   │
+    │ One command · 3-min generation · Ready to execute   │
+    │                                                     │
+    │ BRAND: GlowSkincare IN                             │
+    │ CHANNELS: Instagram, WhatsApp, YouTube              │
+    │ BUDGET: Email $9,200 · Paid Social $5,800        │
+    │   (margin-adjusted: email 85% > social 15%)         │
+    │                                                     │
+    │ COPY VARIANTS:                                      │
+    │ A: 'Your skin deserves clinical-grade care'        │
+    │ B: ' Dermatologist-approved. Now in India.'        │
+    │ C: ' Skincare that actually works in Delhi heat'   │
+    │                                                     │
+    │ BEST POSTING TIMES (IN): 7-9AM · 12-1PM · 7-9PM  │
+    │ HASHTAGS: #IndianSkincare #DermaGlow #SkincareRoutine│
+    │ BRAND TOKENS: #6D0000 · Font: DM Sans · @glowskin │
+    └─────────────────────────────────────────────────────┘
+
+    ┌─────────────────────────────────────────────────────┐
+    │ 3. THE COMPETITOR ALERT (10:00 AM)                  │
+    │ Real data from Facebook Ads Library                 │
+    │                                                     │
+    │ BRAND X — 'Skin that survives Delhi heat'           │
+    │ Running: Since Aug 20 · Estimated spend: $12-18K/wk │
+    │ Hook: survival · Offer: heat-proof · CTA: shop now  │
+    │                                                     │
+    │ COUNTER-ANGLES (AI-generated):                      │
+    │ ① Clinical vs DIY: 'Dermatologists agree: $47 gel  │
+    │   beats $300 AC.'                                  │
+    │ ② Speed: 'Results in 14 days or your money back'   │
+    │ ③ Ingredient transparency: 'We list every actives' │
+    └─────────────────────────────────────────────────────┘
