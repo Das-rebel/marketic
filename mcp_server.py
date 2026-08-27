@@ -580,6 +580,26 @@ TOOLS = [
         },
     },
     {
+        "name": "discover_prospects",
+        "description": "Top-of-funnel prospect discovery: find companies matching an ICP before they enter enrichment. Searches Serper (Google), Twitter/X, Reddit, and Product Hunt in parallel. Requires SERPER_API_KEY for full results.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "icp_description": {
+                    "type": "string",
+                    "description": "Natural-language ICP. E.g. 'D2C skincare brands in India' or 'B2B SaaS fintech in Southeast Asia'."
+                },
+                "limit": {"type": "integer", "default": 20},
+                "sources": {
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "serper | twitter | reddit | product_hunt. Defaults to all."
+                }
+            },
+            "required": ["icp_description"]
+        }
+    },
+    {
         "name": "search_fb_ads",
         "description": "Search Facebook Ads Library for REAL competitor ad creatives, copy and delivery data (ground truth, not VLM guessing). Requires FB_ACCESS_TOKEN env var.",
         "inputSchema": {
@@ -766,6 +786,40 @@ TOOLS = [
 
 
 # ─── Tool Handlers ────────────────────────────────────────────
+
+async def handle_discover_prospects(args):
+    """Top-of-funnel prospect discovery."""
+    from intelligence.scout.discovery import ProspectScout
+
+    icp = args.get("icp_description", "")
+    if not icp:
+        return {"error": "icp_description is required"}
+
+    scout = ProspectScout()
+    results = await scout.discover(
+        icp_description=icp,
+        limit=args.get("limit", 20),
+        sources=args.get("sources"),
+    )
+
+    return {
+        "prospects": [
+            {
+                "name": r.name,
+                "domain": r.domain,
+                "source": r.source,
+                "url": r.source_url,
+                "headline": r.headline,
+                "relevance_score": round(r.relevance_score, 1),
+                "signal": r.signal,
+                "matched_on": r.matched_on,
+            }
+            for r in results
+        ],
+        "count": len(results),
+        "serper_key_set": bool(scout.serper_key),
+    }
+
 
 async def handle_analyze_competitor(args):
     from gtm.competitive import CompetitiveIntelligence
@@ -1520,6 +1574,7 @@ async def handle_ask_marketic(args):
         (["schedule", "post", "publish", "content calendar"], "schedule_content"),
         (["upcoming posts", "what's scheduled", "calendar"], "get_upcoming_posts"),
         (["hashtag", "optimize hashtags", "discover hashtags"], "optimize_hashtags"),
+        (["discover", "find prospects", "new leads", "scout", "top of funnel", "undiscovered"], "discover_prospects"),
         (["ugc", "curate", "user generated", "repost"], "curate_ugc"),
         (["permission", "ugc request"], "request_ugc_permission"),
         (["track ugc", "ugc analytics"], "track_ugc"),
@@ -2001,6 +2056,7 @@ HANDLERS = {
     "ask_marketic": handle_ask_marketic,
     "run_prospect_loop": handle_run_prospect_loop,
     "distill_learnings": handle_distill_learnings,
+    "discover_prospects": handle_discover_prospects,
     "search_fb_ads": handle_search_fb_ads,
     "analyze_competitor_ad": handle_analyze_competitor_ad,
     "breakdown_ad": handle_breakdown_ad,

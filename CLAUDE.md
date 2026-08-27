@@ -47,6 +47,7 @@ LEARN   audit trail → ensemble/learnings.py distills patterns →
 | `mcp_server.py` | 43-tool stdio server; HANDLERS + TOOLS must stay in sync |
 | `daily_briefing.py` | Cronnable digest; also runs as GitHub Action 08:00 UTC |
 | `signals/collectors.py` | SignalFanout + PolymarketCollector (P(YES) logic lives here) |
+| `intelligence/scout/discovery.py` | ProspectScout — top-of-funnel ICP discovery across Serper/Twitter/Reddit/Product Hunt; complements `run_prospect_loop` for enriched leads |
 | `analytics/scorecard.py` | Prediction tracking, Gamma-API auto-resolution, Brier score |
 | `ensemble/learnings.py` | LearningEngine: capture/distill/export_brain_md |
 | `crm/prospect_loop.py` | JoeCRM-style signal-driven prospecting |
