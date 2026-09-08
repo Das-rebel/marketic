@@ -1,0 +1,24 @@
+name: npm Publish marketic-mcp
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "npm_dist/**"
+
+jobs:
+  publish-mcp:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          registry-url: https://registry.npmjs.org/
+      - name: Publish marketic-mcp
+        working-directory: ./npm_dist
+        run: |
+          node -e "const p=require('./package.json'); console.log('Publishing marketic-mcp@'+p.version)"
+          npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
