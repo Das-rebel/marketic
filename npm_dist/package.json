@@ -1,7 +1,7 @@
 {
   "name": "marketic-mcp",
   "version": "1.0.5",
-  "description": "Marketic Marketing Intelligence MCP Server — 43 tools for competitor analysis, ad creative generation, campaign optimization, social media, SEO, HubSpot CRM, and attribution modeling",
+  "description": "Give Claude/cursor AI assistants 43 real marketing tools: daily market briefs, competitor analysis, ad creative, campaign planning, attribution, HubSpot CRM. MCP server.",
   "main": "mcp_server.py",
   "bin": {
     "marketic-mcp": "./marketic-mcp.js"
@@ -9,22 +9,33 @@
   "keywords": [
     "mcp",
     "mcp-server",
+    "model-context-protocol",
+    "claude",
+    "claude-desktop",
+    "cursor",
+    "windsurf",
     "marketing",
     "marketing-intelligence",
+    "marketing-ops",
     "competitor-analysis",
+    "competitor-intelligence",
     "advertising",
+    "ad-creative",
     "campaign-optimization",
+    "attribution",
+    "incrementality",
     "seo",
     "social-media",
     "crm",
     "hubspot",
-    "attribution",
+    "daily-brief",
+    "google-trends",
+    "signal-detection",
     "ai-marketing",
     "marketing-automation",
-    "claude",
-    "cursor",
-    "windsurf",
-    "aio-executor"
+    "ai-agent",
+    "llm",
+    "budget-optimization"
   ],
   "author": "Subhojit Das",
   "license": "MIT",
@@ -35,5 +46,8 @@
   },
   "engines": {
     "node": ">=18.0.0"
+  },
+  "bugs": {
+    "url": "https://github.com/Das-rebel/marketic/issues"
   }
 }
